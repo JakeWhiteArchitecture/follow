@@ -1,0 +1,150 @@
+{
+  "follow_version": "0.1",
+  "project": {
+    "name": "Smith Rear Extension",
+    "client": "Mr & Mrs Smith",
+    "address": "14 Acacia Avenue, Haywards Heath",
+    "created": "2026-03-25",
+    "stages": {
+      "0": { "active": true, "in_appointment": true, "width": 260 },
+      "1": { "active": true, "in_appointment": true, "width": 260 },
+      "2": { "active": true, "in_appointment": true, "width": 280 },
+      "3": { "active": true, "in_appointment": true, "width": 280 },
+      "4": { "active": true, "in_appointment": true, "width": 280 },
+      "5": { "active": true, "in_appointment": false, "width": 240 },
+      "6": { "active": true, "in_appointment": false, "width": 200 },
+      "7": { "active": true, "in_appointment": false, "width": 200 }
+    },
+    "contacts": [
+      { "id": "c01", "name": "Jake White", "org": "Jake White Architecture", "discipline": "Architect / Principal Designer" },
+      { "id": "c02", "name": "Sarah Chen", "org": "Chen Structural", "discipline": "Structural Engineer" },
+      { "id": "c03", "name": null, "org": null, "discipline": "Building Control", "unassigned": true },
+      { "id": "c04", "name": "Mr & Mrs Smith", "org": null, "discipline": "Client" }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "label": "Client Brief",
+      "type": "work_package",
+      "stage": 0,
+      "role": "c04",
+      "status": "complete",
+      "position": { "x": 50, "y": 100 },
+      "notes": "Initial brief discussion and site visit.",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "history": [{ "event": "created", "timestamp": "2026-03-25T09:00:00Z" }]
+    },
+    {
+      "id": "node_002",
+      "label": "Site Survey",
+      "type": "work_package",
+      "stage": 0,
+      "role": "c01",
+      "status": "complete",
+      "position": { "x": 50, "y": 250 },
+      "notes": "Measured survey of existing property.",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "history": [{ "event": "created", "timestamp": "2026-03-25T09:00:00Z" }]
+    },
+    {
+      "id": "node_003",
+      "label": "Feasibility Study",
+      "type": "work_package",
+      "stage": 1,
+      "role": "c01",
+      "status": "active",
+      "position": { "x": 310, "y": 100 },
+      "notes": "Options appraisal for rear extension.",
+      "target_date": "2026-04-15",
+      "linked_docs": [],
+      "typical_inputs": [],
+      "history": [{ "event": "created", "timestamp": "2026-03-25T09:00:00Z" }]
+    },
+    {
+      "id": "node_004",
+      "label": "Planning Pre-App",
+      "type": "information_request",
+      "stage": 1,
+      "role": "c01",
+      "status": "pending",
+      "position": { "x": 310, "y": 250 },
+      "notes": "Pre-application enquiry to MSDC.",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "history": [{ "event": "created", "timestamp": "2026-03-25T09:00:00Z" }]
+    },
+    {
+      "id": "node_005",
+      "label": "Concept Design",
+      "type": "work_package",
+      "stage": 2,
+      "role": "c01",
+      "status": "pending",
+      "position": { "x": 580, "y": 100 },
+      "notes": "Developed concept based on feasibility outcome.",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "history": [{ "event": "created", "timestamp": "2026-03-25T09:00:00Z" }]
+    },
+    {
+      "id": "node_006",
+      "label": "Client Sign-Off",
+      "type": "user_checkpoint",
+      "stage": 2,
+      "role": "c04",
+      "status": "pending",
+      "position": { "x": 580, "y": 260 },
+      "notes": "Client approval of concept design before proceeding.",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "history": [{ "event": "created", "timestamp": "2026-03-25T09:00:00Z" }]
+    },
+    {
+      "id": "node_007",
+      "label": "SE Scheme Design",
+      "type": "work_package",
+      "stage": 3,
+      "role": "c02",
+      "status": "pending",
+      "position": { "x": 870, "y": 180 },
+      "notes": "Structural scheme design for rear extension.",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [{ "type": "architectural_layout", "label": "Arch Layout Stage 2" }],
+      "history": [{ "event": "created", "timestamp": "2026-03-25T09:00:00Z" }]
+    },
+    {
+      "id": "node_008",
+      "label": "Planning Application",
+      "type": "milestone",
+      "stage": 3,
+      "role": "c01",
+      "status": "pending",
+      "position": { "x": 870, "y": 60 },
+      "notes": "Full planning application submission.",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "history": [{ "event": "created", "timestamp": "2026-03-25T09:00:00Z" }]
+    }
+  ],
+  "edges": [
+    { "id": "edge_001", "source": "node_001", "source_handle": "output", "target": "node_003", "target_handle": "input" },
+    { "id": "edge_002", "source": "node_002", "source_handle": "output", "target": "node_003", "target_handle": "input" },
+    { "id": "edge_003", "source": "node_003", "source_handle": "output", "target": "node_004", "target_handle": "input" },
+    { "id": "edge_004", "source": "node_003", "source_handle": "output", "target": "node_005", "target_handle": "input" },
+    { "id": "edge_005", "source": "node_005", "source_handle": "output", "target": "node_006", "target_handle": "input" },
+    { "id": "edge_006", "source": "node_006", "source_handle": "output", "target": "node_007", "target_handle": "input" },
+    { "id": "edge_007", "source": "node_005", "source_handle": "output", "target": "node_008", "target_handle": "input" },
+    { "id": "edge_008", "source": "node_004", "source_handle": "output", "target": "node_008", "target_handle": "input" }
+  ],
+  "canvas": { "zoom": 1.0, "pan_x": 0, "pan_y": 0 }
+}
