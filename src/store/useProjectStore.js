@@ -407,13 +407,33 @@ const useProjectStore = create((set, get) => ({
         type: 'deletable',
       };
     } else {
-      // Dragged from an input → new node is upstream, connect its first output to the start input
+      // Dragged from an input → new node is upstream
+      // Create a NEW input group on the target node, named after the new node
+      const newGroupId = `g_${generateId()}`;
+      const newGroupOutputId = `o_${generateId()}`;
+      const targetIdx = updatedNodes.findIndex((n) => n.id === startNodeId);
+      if (targetIdx !== -1) {
+        const targetNode = updatedNodes[targetIdx];
+        const newGroup = {
+          id: newGroupId,
+          inputLabel: name,
+          outputs: [{ id: newGroupOutputId, label: targetNode.data.label }],
+        };
+        updatedNodes[targetIdx] = {
+          ...targetNode,
+          data: {
+            ...targetNode.data,
+            groups: [...(targetNode.data.groups || []), newGroup],
+          },
+        };
+      }
+
       newEdge = {
         id: `edge_${generateId()}`,
         source: id,
         sourceHandle: `output-${groupId}-${outputId}`,
         target: startNodeId,
-        targetHandle: startHandleId,
+        targetHandle: `input-${newGroupId}`,
         animated: false,
         type: 'deletable',
       };

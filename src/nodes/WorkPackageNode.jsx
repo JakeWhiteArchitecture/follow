@@ -3,13 +3,8 @@ import { Handle, Position } from '@xyflow/react';
 import { STATUS_COLORS } from '../utils/colors';
 import useProjectStore from '../store/useProjectStore';
 
-const HEADER_HEIGHT = 28;
-const PIN_ROW_HEIGHT = 22;
-const GROUP_DIVIDER_HEIGHT = 1;
 const PIN_SIZE = 10;
-const NODE_MIN_WIDTH = 220;
-const ADD_ZONE_HEIGHT = 24;
-const ROLE_HEIGHT = 16;
+const NODE_MIN_WIDTH = 240;
 
 function InlineEdit({ value, onChange, style, inputStyle: extraInputStyle }) {
   const [editing, setEditing] = useState(false);
@@ -20,7 +15,6 @@ function InlineEdit({ value, onChange, style, inputStyle: extraInputStyle }) {
     e.stopPropagation();
     setDraft(value);
     setEditing(true);
-    // Focus after render
     setTimeout(() => inputRef.current?.focus(), 0);
   }, [value]);
 
@@ -74,45 +68,126 @@ function InlineEdit({ value, onChange, style, inputStyle: extraInputStyle }) {
   );
 }
 
+function PinGroup({ nodeId, group, colors, readOnly, isLast }) {
+  const updateGroup = useProjectStore((s) => s.updateGroup);
+  const updateOutput = useProjectStore((s) => s.updateOutput);
+
+  const outputs = group.outputs || [];
+  const rowCount = Math.max(1, outputs.length);
+
+  return (
+    <div style={{
+      borderBottom: isLast ? 'none' : '1px solid #374151',
+      padding: '4px 0',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+        {/* Input side */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          minHeight: rowCount * 22,
+          paddingLeft: PIN_SIZE + 6,
+          paddingRight: 8,
+        }}>
+          <div style={{
+            fontSize: 10,
+            color: '#d1d5db',
+            lineHeight: 1.3,
+            wordBreak: 'break-word',
+          }}>
+            {readOnly ? (
+              <span>{group.inputLabel || 'Input'}</span>
+            ) : (
+              <InlineEdit
+                value={group.inputLabel || 'Input'}
+                onChange={(val) => updateGroup(nodeId, group.id, { inputLabel: val })}
+                style={{ fontSize: 10, color: '#d1d5db' }}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Output side */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          paddingRight: PIN_SIZE + 6,
+          paddingLeft: 8,
+        }}>
+          {outputs.map((out) => (
+            <div key={out.id} style={{
+              fontSize: 10,
+              color: '#d1d5db',
+              textAlign: 'right',
+              lineHeight: 1.3,
+              wordBreak: 'break-word',
+              minHeight: 18,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+            }}>
+              {readOnly ? (
+                <span>{out.label}</span>
+              ) : (
+                <InlineEdit
+                  value={out.label}
+                  onChange={(val) => updateOutput(nodeId, group.id, out.id, { label: val })}
+                  style={{ fontSize: 10, color: '#d1d5db', textAlign: 'right' }}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Handles are rendered by the parent — we just return layout info */}
+    </div>
+  );
+}
+
 export default function WorkPackageNode({ id, data, selected }) {
   const colors = STATUS_COLORS[data.status] || STATUS_COLORS.pending;
   const contacts = useProjectStore((s) => s.project.project.contacts);
   const highlighted = useProjectStore((s) => s.highlightedNodes.has(id));
   const selectedNode = useProjectStore((s) => s.selectedNode);
   const updateNodeData = useProjectStore((s) => s.updateNodeData);
-  const updateGroup = useProjectStore((s) => s.updateGroup);
-  const updateOutput = useProjectStore((s) => s.updateOutput);
   const readOnly = useProjectStore((s) => s.readOnly);
 
   const contact = contacts.find((c) => c.id === data.role);
   const roleName = contact ? (contact.name || contact.discipline) : null;
   const isInfoRequest = data.nodeType === 'information_request';
   const groups = data.groups || [];
+  const isChainGlow = highlighted && selectedNode !== id;
 
-  // Calculate total height
-  let contentHeight = 0;
-  groups.forEach((g, gi) => {
-    const rowCount = Math.max(1, g.outputs?.length || 0);
-    contentHeight += rowCount * PIN_ROW_HEIGHT;
-    if (gi < groups.length - 1) contentHeight += GROUP_DIVIDER_HEIGHT + 8;
-  });
-  if (groups.length === 0) contentHeight = PIN_ROW_HEIGHT;
-  contentHeight += ADD_ZONE_HEIGHT;
+  // We use a ref-based approach to measure and position handles after render.
+  // Since React Flow handles need to be in the render tree, we calculate
+  // positions based on the flex layout using estimated row heights.
+  const nodeRef = useRef(null);
 
-  const totalHeight = HEADER_HEIGHT + ROLE_HEIGHT + contentHeight + 8;
-
-  // Build handle positions
+  // Build handle elements — we need to estimate positions for React Flow handles
+  // Each group: input handle centered vertically, output handles per row
   let handleElements = [];
-  let pinRows = [];
-  let yOffset = HEADER_HEIGHT + ROLE_HEIGHT + 4;
+  let yOffset = 0; // track cumulative offset within the pin area
+
+  // We estimate: header=28, role=16, then each group
+  const headerH = 28;
+  const roleH = 16;
+  const groupPadding = 8; // 4px top + 4px bottom per group
+  const outputRowH = 22; // estimated per output row
+  const dividerH = 1;
+
+  let pinAreaY = headerH + roleH;
 
   groups.forEach((group, gi) => {
-    const outputCount = group.outputs?.length || 0;
-    const rowCount = Math.max(1, outputCount);
-    const groupStartY = yOffset;
+    const outputCount = Math.max(1, group.outputs?.length || 0);
+    const groupContentH = outputCount * outputRowH;
+    const groupTotalH = groupContentH + groupPadding;
 
-    // Input pin — vertically centered within this group's rows
-    const inputCenterY = groupStartY + (rowCount * PIN_ROW_HEIGHT) / 2;
+    // Input pin — centered vertically in this group
+    const inputCenterY = pinAreaY + groupPadding / 2 + groupContentH / 2;
     handleElements.push(
       <Handle
         key={`in-${group.id}`}
@@ -131,36 +206,10 @@ export default function WorkPackageNode({ id, data, selected }) {
       />
     );
 
-    // Input label — inline editable
-    const groupId = group.id;
-    pinRows.push(
-      <div key={`inlabel-${group.id}`} style={{
-        position: 'absolute',
-        left: PIN_SIZE + 4,
-        top: inputCenterY - 8,
-        fontSize: 10,
-        color: '#d1d5db',
-        whiteSpace: 'nowrap',
-        maxWidth: NODE_MIN_WIDTH / 2 - PIN_SIZE - 12,
-        overflow: 'hidden',
-      }}>
-        {readOnly ? (
-          <span>{group.inputLabel || 'Input'}</span>
-        ) : (
-          <InlineEdit
-            value={group.inputLabel || 'Input'}
-            onChange={(val) => updateGroup(id, groupId, { inputLabel: val })}
-            style={{ fontSize: 10, color: '#d1d5db' }}
-          />
-        )}
-      </div>
-    );
-
     // Output pins
-    if (outputCount > 0) {
+    if (group.outputs) {
       group.outputs.forEach((out, oi) => {
-        const outY = groupStartY + oi * PIN_ROW_HEIGHT + PIN_ROW_HEIGHT / 2;
-        const outId = out.id;
+        const outY = pinAreaY + groupPadding / 2 + oi * outputRowH + outputRowH / 2;
         handleElements.push(
           <Handle
             key={`out-${group.id}-${out.id}`}
@@ -178,54 +227,15 @@ export default function WorkPackageNode({ id, data, selected }) {
             }}
           />
         );
-
-        pinRows.push(
-          <div key={`outlabel-${group.id}-${out.id}`} style={{
-            position: 'absolute',
-            right: PIN_SIZE + 4,
-            top: outY - 8,
-            fontSize: 10,
-            color: '#d1d5db',
-            whiteSpace: 'nowrap',
-            textAlign: 'right',
-            maxWidth: NODE_MIN_WIDTH / 2 - PIN_SIZE - 12,
-            overflow: 'hidden',
-          }}>
-            {readOnly ? (
-              <span>{out.label}</span>
-            ) : (
-              <InlineEdit
-                value={out.label}
-                onChange={(val) => updateOutput(id, groupId, outId, { label: val })}
-                style={{ fontSize: 10, color: '#d1d5db', textAlign: 'right' }}
-              />
-            )}
-          </div>
-        );
       });
     }
 
-    yOffset += rowCount * PIN_ROW_HEIGHT;
-
-    // Group divider line
-    if (gi < groups.length - 1) {
-      yOffset += 4;
-      pinRows.push(
-        <div key={`divider-${gi}`} style={{
-          position: 'absolute',
-          left: 8,
-          right: 8,
-          top: yOffset,
-          height: GROUP_DIVIDER_HEIGHT,
-          background: '#374151',
-        }} />
-      );
-      yOffset += GROUP_DIVIDER_HEIGHT + 4;
-    }
+    pinAreaY += groupTotalH;
+    if (gi < groups.length - 1) pinAreaY += dividerH;
   });
 
-  // "New group" drop zone at bottom
-  const dropZoneY = yOffset + 4;
+  // "New group" drop zone
+  const addZoneH = 24;
   handleElements.push(
     <Handle
       key="new-group"
@@ -233,7 +243,7 @@ export default function WorkPackageNode({ id, data, selected }) {
       position={Position.Left}
       id="new-group"
       style={{
-        top: dropZoneY + ADD_ZONE_HEIGHT / 2,
+        top: pinAreaY + addZoneH / 2,
         left: -1,
         background: 'transparent',
         width: PIN_SIZE,
@@ -246,25 +256,25 @@ export default function WorkPackageNode({ id, data, selected }) {
 
   return (
     <div
+      ref={nodeRef}
       style={{
         width: NODE_MIN_WIDTH,
-        height: totalHeight,
         background: '#1e1e2e',
         borderRadius: 4,
-        border: `2px ${isInfoRequest ? 'dashed' : 'solid'} ${selected ? '#3b82f6' : (highlighted && selectedNode !== id) ? '#60a5fa50' : '#2d2d3d'}`,
+        border: `2px ${isInfoRequest ? 'dashed' : 'solid'} ${selected ? '#3b82f6' : isChainGlow ? '#60a5fa50' : '#2d2d3d'}`,
         position: 'relative',
         boxShadow: selected
           ? '0 0 0 2px #3b82f6, 0 0 20px rgba(59,130,246,0.5), 0 4px 20px rgba(0,0,0,0.5)'
-          : (highlighted && selectedNode !== id)
+          : isChainGlow
           ? '0 0 12px rgba(96,165,250,0.4), 0 4px 16px rgba(0,0,0,0.5)'
           : '0 4px 16px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.3)',
         overflow: 'visible',
         cursor: 'grab',
       }}
     >
-      {/* Title bar — inline editable */}
+      {/* Title bar */}
       <div style={{
-        height: HEADER_HEIGHT,
+        height: headerH,
         background: colors.border,
         borderRadius: '2px 2px 0 0',
         display: 'flex',
@@ -277,6 +287,7 @@ export default function WorkPackageNode({ id, data, selected }) {
             <span style={{
               fontSize: 11, fontWeight: 700, color: '#fff',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              display: 'block',
             }}>
               {data.label}
             </span>
@@ -315,8 +326,8 @@ export default function WorkPackageNode({ id, data, selected }) {
         color: roleName ? '#6b7280' : '#ef4444',
         fontStyle: roleName ? 'normal' : 'italic',
         padding: '2px 8px 0',
-        height: ROLE_HEIGHT,
-        lineHeight: ROLE_HEIGHT + 'px',
+        height: roleH,
+        lineHeight: roleH + 'px',
       }}>
         {roleName || 'Unassigned'}
         {data.stage !== undefined && (
@@ -324,14 +335,26 @@ export default function WorkPackageNode({ id, data, selected }) {
         )}
       </div>
 
-      {/* Pin labels (absolutely positioned) */}
-      {pinRows}
+      {/* Pin groups — flow layout */}
+      <div>
+        {groups.map((group, gi) => (
+          <PinGroup
+            key={group.id}
+            nodeId={id}
+            group={group}
+            colors={colors}
+            readOnly={readOnly}
+            isLast={gi === groups.length - 1}
+          />
+        ))}
+      </div>
 
-      {/* Drop zone hint at bottom */}
+      {/* Drop zone hint */}
       <div style={{
-        position: 'absolute',
-        bottom: 2,
-        left: PIN_SIZE + 4,
+        height: addZoneH,
+        display: 'flex',
+        alignItems: 'center',
+        paddingLeft: PIN_SIZE + 6,
         fontSize: 9,
         color: '#374151',
         fontStyle: 'italic',
