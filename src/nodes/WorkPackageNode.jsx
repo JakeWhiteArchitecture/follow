@@ -1,7 +1,14 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { STATUS_COLORS } from '../utils/colors';
 import useProjectStore from '../store/useProjectStore';
+
+const HEADER_HEIGHT = 28;
+const PIN_ROW_HEIGHT = 22;
+const GROUP_DIVIDER_HEIGHT = 1;
+const PIN_SIZE = 10;
+const NODE_MIN_WIDTH = 220;
+const ADD_ZONE_HEIGHT = 24;
 
 export default function WorkPackageNode({ id, data, selected }) {
   const colors = STATUS_COLORS[data.status] || STATUS_COLORS.pending;
@@ -9,54 +16,219 @@ export default function WorkPackageNode({ id, data, selected }) {
   const contact = contacts.find((c) => c.id === data.role);
   const roleName = contact ? (contact.name || contact.discipline) : null;
   const isInfoRequest = data.nodeType === 'information_request';
+  const groups = data.groups || [];
+
+  // Calculate total height
+  let contentHeight = 0;
+  groups.forEach((g, gi) => {
+    const rowCount = Math.max(1, g.outputs?.length || 0);
+    contentHeight += rowCount * PIN_ROW_HEIGHT;
+    if (gi < groups.length - 1) contentHeight += GROUP_DIVIDER_HEIGHT + 8; // divider + padding
+  });
+  if (groups.length === 0) contentHeight = PIN_ROW_HEIGHT;
+  contentHeight += ADD_ZONE_HEIGHT; // "drop here" zone
+
+  const totalHeight = HEADER_HEIGHT + contentHeight + 8;
+
+  // Build handle positions
+  let handleElements = [];
+  let pinRows = [];
+  let yOffset = HEADER_HEIGHT + 4;
+
+  groups.forEach((group, gi) => {
+    const outputCount = group.outputs?.length || 0;
+    const rowCount = Math.max(1, outputCount);
+    const groupStartY = yOffset;
+
+    // Input pin — vertically centered within this group's rows
+    const inputCenterY = groupStartY + (rowCount * PIN_ROW_HEIGHT) / 2;
+    handleElements.push(
+      <Handle
+        key={`in-${group.id}`}
+        type="target"
+        position={Position.Left}
+        id={`input-${group.id}`}
+        style={{
+          top: inputCenterY,
+          left: -1,
+          background: colors.border,
+          width: PIN_SIZE,
+          height: PIN_SIZE,
+          borderRadius: '50%',
+          border: '2px solid #23272f',
+        }}
+      />
+    );
+
+    // Input label
+    pinRows.push(
+      <div key={`inlabel-${group.id}`} style={{
+        position: 'absolute',
+        left: PIN_SIZE + 4,
+        top: inputCenterY - 7,
+        fontSize: 10,
+        color: '#d1d5db',
+        whiteSpace: 'nowrap',
+      }}>
+        {group.inputLabel || 'Input'}
+      </div>
+    );
+
+    // Output pins
+    if (outputCount > 0) {
+      group.outputs.forEach((out, oi) => {
+        const outY = groupStartY + oi * PIN_ROW_HEIGHT + PIN_ROW_HEIGHT / 2;
+        handleElements.push(
+          <Handle
+            key={`out-${group.id}-${out.id}`}
+            type="source"
+            position={Position.Right}
+            id={`output-${group.id}-${out.id}`}
+            style={{
+              top: outY,
+              right: -1,
+              background: colors.border,
+              width: PIN_SIZE,
+              height: PIN_SIZE,
+              borderRadius: '50%',
+              border: '2px solid #23272f',
+            }}
+          />
+        );
+
+        pinRows.push(
+          <div key={`outlabel-${group.id}-${out.id}`} style={{
+            position: 'absolute',
+            right: PIN_SIZE + 4,
+            top: outY - 7,
+            fontSize: 10,
+            color: '#d1d5db',
+            whiteSpace: 'nowrap',
+            textAlign: 'right',
+          }}>
+            {out.label}
+          </div>
+        );
+      });
+    }
+
+    yOffset += rowCount * PIN_ROW_HEIGHT;
+
+    // Group divider line
+    if (gi < groups.length - 1) {
+      yOffset += 4;
+      pinRows.push(
+        <div key={`divider-${gi}`} style={{
+          position: 'absolute',
+          left: 8,
+          right: 8,
+          top: yOffset,
+          height: GROUP_DIVIDER_HEIGHT,
+          background: '#374151',
+        }} />
+      );
+      yOffset += GROUP_DIVIDER_HEIGHT + 4;
+    }
+  });
+
+  // "New group" drop zone at bottom — acts as a target handle
+  const dropZoneY = yOffset + 4;
+  handleElements.push(
+    <Handle
+      key="new-group"
+      type="target"
+      position={Position.Left}
+      id="new-group"
+      style={{
+        top: dropZoneY + ADD_ZONE_HEIGHT / 2,
+        left: -1,
+        background: 'transparent',
+        width: PIN_SIZE,
+        height: PIN_SIZE,
+        borderRadius: '50%',
+        border: '2px dashed #4b5563',
+      }}
+    />
+  );
 
   return (
     <div
       style={{
-        background: colors.bg,
-        border: `2px ${isInfoRequest ? 'dashed' : 'solid'} ${colors.border}`,
-        borderRadius: 6,
-        padding: '8px 12px',
-        minWidth: 160,
-        maxWidth: 220,
+        width: NODE_MIN_WIDTH,
+        height: totalHeight,
+        background: '#1e1e2e',
+        borderRadius: 4,
+        border: `2px ${isInfoRequest ? 'dashed' : 'solid'} ${selected ? '#3b82f6' : '#2d2d3d'}`,
+        position: 'relative',
+        boxShadow: selected ? '0 0 0 1px #3b82f6' : '0 2px 8px rgba(0,0,0,0.3)',
+        overflow: 'visible',
         cursor: 'grab',
-        boxShadow: selected ? `0 0 0 2px #3b82f6` : '0 1px 3px rgba(0,0,0,0.1)',
-        fontSize: 12,
       }}
     >
-      <Handle type="target" position={Position.Left} id="input"
-        style={{ background: '#6b7280', width: 8, height: 8 }} />
-      <div style={{ fontWeight: 600, color: colors.text, marginBottom: 4, lineHeight: 1.3 }}>
-        {data.label}
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
+      {/* Title bar */}
+      <div style={{
+        height: HEADER_HEIGHT,
+        background: colors.border,
+        borderRadius: '2px 2px 0 0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 8px',
+      }}>
         <span style={{
-          fontSize: 10,
-          color: roleName ? '#374151' : '#ef4444',
-          fontStyle: roleName ? 'normal' : 'italic',
-          borderBottom: roleName ? 'none' : '1px dotted #ef4444',
+          fontSize: 11,
+          fontWeight: 700,
+          color: '#fff',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          flex: 1,
         }}>
-          {roleName || 'Unassigned'}
+          {data.label}
         </span>
         <span style={{
-          fontSize: 9,
-          background: colors.border,
-          color: '#fff',
-          padding: '1px 5px',
-          borderRadius: 3,
+          fontSize: 8,
+          color: 'rgba(255,255,255,0.7)',
+          marginLeft: 4,
           textTransform: 'uppercase',
           fontWeight: 600,
+          letterSpacing: '0.5px',
         }}>
           {data.status}
         </span>
       </div>
-      {data.stage !== undefined && (
-        <div style={{ fontSize: 9, color: '#9ca3af', marginTop: 2 }}>
-          Stage {data.stage}
-        </div>
-      )}
-      <Handle type="source" position={Position.Right} id="output"
-        style={{ background: '#6b7280', width: 8, height: 8 }} />
+
+      {/* Role subtitle */}
+      <div style={{
+        fontSize: 9,
+        color: roleName ? '#6b7280' : '#ef4444',
+        fontStyle: roleName ? 'normal' : 'italic',
+        padding: '2px 8px 0',
+        borderBottom: groups.length > 0 ? 'none' : undefined,
+      }}>
+        {roleName || 'Unassigned'}
+        {data.stage !== undefined && (
+          <span style={{ marginLeft: 6, color: '#4b5563' }}>S{data.stage}</span>
+        )}
+      </div>
+
+      {/* Pin labels (absolutely positioned) */}
+      {pinRows}
+
+      {/* Drop zone hint at bottom */}
+      <div style={{
+        position: 'absolute',
+        bottom: 2,
+        left: PIN_SIZE + 4,
+        fontSize: 9,
+        color: '#374151',
+        fontStyle: 'italic',
+      }}>
+        + new input
+      </div>
+
+      {/* All handles */}
+      {handleElements}
     </div>
   );
 }

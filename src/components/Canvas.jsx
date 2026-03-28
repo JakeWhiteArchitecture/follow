@@ -24,8 +24,8 @@ const nodeTypes = {
 };
 
 const defaultEdgeOptions = {
-  animated: true,
-  style: { stroke: '#6b7280', strokeWidth: 2 },
+  animated: false,
+  style: { stroke: '#38bdf8', strokeWidth: 2 },
   type: 'smoothstep',
 };
 

@@ -16,25 +16,23 @@ const RIBA_STAGES = [
 
 const DEFAULT_STAGE_WIDTH = 260;
 
-const createEmptyProject = () => ({
-  follow_version: '0.1',
-  project: {
-    name: '',
-    client: '',
-    address: '',
-    created: new Date().toISOString().split('T')[0],
-    stages: {},
-    contacts: [],
-  },
-  nodes: [],
-  edges: [],
-  canvas: { zoom: 1.0, pan_x: 0, pan_y: 0 },
-});
-
 const useProjectStore = create((set, get) => ({
   // App state
   screen: 'setup', // 'setup' | 'canvas'
-  project: createEmptyProject(),
+  project: {
+    follow_version: '0.1',
+    project: {
+      name: '',
+      client: '',
+      address: '',
+      created: new Date().toISOString().split('T')[0],
+      stages: {},
+      contacts: [],
+    },
+    nodes: [],
+    edges: [],
+    canvas: { zoom: 1.0, pan_x: 0, pan_y: 0 },
+  },
   nodes: [],
   edges: [],
   selectedNode: null,
@@ -96,6 +94,7 @@ const useProjectStore = create((set, get) => ({
         target_date: n.target_date,
         linked_docs: n.linked_docs || [],
         typical_inputs: n.typical_inputs || [],
+        groups: n.groups || [],
         history: n.history || [],
       },
     }));
@@ -107,6 +106,7 @@ const useProjectStore = create((set, get) => ({
       target: e.target,
       targetHandle: e.target_handle || 'input',
       animated: true,
+      type: 'smoothstep',
     }));
 
     set({
@@ -139,6 +139,7 @@ const useProjectStore = create((set, get) => ({
       target_date: n.data.target_date,
       linked_docs: n.data.linked_docs,
       typical_inputs: n.data.typical_inputs,
+      groups: n.data.groups || [],
       history: n.data.history,
     }));
 
@@ -161,13 +162,14 @@ const useProjectStore = create((set, get) => ({
   onNodesChange: (changes) => {
     set((state) => {
       const newNodes = applyNodeChanges(changes, state.nodes);
-      // Update stage based on position
       const { project } = state;
       const stageColumns = getStageColumns(project.project.stages);
       for (const node of newNodes) {
-        const stage = getStageForPosition(node.position.x, stageColumns);
-        if (stage !== null && node.data.stage !== stage) {
-          node.data = { ...node.data, stage };
+        if (node.position) {
+          const stage = getStageForPosition(node.position.x, stageColumns);
+          if (stage !== null && node.data.stage !== stage) {
+            node.data = { ...node.data, stage };
+          }
         }
       }
       return { nodes: newNodes };
@@ -182,37 +184,96 @@ const useProjectStore = create((set, get) => ({
 
   onConnect: (connection) => {
     const { nodes, edges } = get();
+    const targetNode = nodes.find((n) => n.id === connection.target);
+
+    // If the target handle is "new-group", create a new group on the target node
+    if (connection.targetHandle === 'new-group' && targetNode) {
+      const groupId = `g_${generateId()}`;
+      const outputId = `o_${generateId()}`;
+      const newGroup = {
+        id: groupId,
+        inputLabel: 'New input',
+        outputs: [{ id: outputId, label: 'Output' }],
+      };
+
+      // Update node to add the new group
+      const updatedNodes = nodes.map((n) => {
+        if (n.id === connection.target) {
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              groups: [...(n.data.groups || []), newGroup],
+            },
+          };
+        }
+        return n;
+      });
+
+      // Create edge pointing to the new group's input
+      const newEdge = {
+        id: `edge_${generateId()}`,
+        source: connection.source,
+        sourceHandle: connection.sourceHandle,
+        target: connection.target,
+        targetHandle: `input-${groupId}`,
+        animated: true,
+        type: 'smoothstep',
+      };
+
+      const testEdges = [...edges, newEdge];
+      if (detectCycle(updatedNodes, testEdges)) {
+        alert('Circular dependency detected. This connection is not allowed.');
+        return;
+      }
+
+      const finalNodes = propagateStatuses(updatedNodes, testEdges);
+      set({ nodes: finalNodes, edges: testEdges });
+      return;
+    }
+
+    // Standard connection
     const newEdge = {
       id: `edge_${generateId()}`,
       source: connection.source,
-      sourceHandle: connection.sourceHandle || 'output',
+      sourceHandle: connection.sourceHandle,
       target: connection.target,
-      targetHandle: connection.targetHandle || 'input',
+      targetHandle: connection.targetHandle,
       animated: true,
+      type: 'smoothstep',
     };
 
-    // Check for circular dependency
     const testEdges = [...edges, newEdge];
     if (detectCycle(nodes, testEdges)) {
       alert('Circular dependency detected. This connection is not allowed.');
       return;
     }
 
-    const newEdges = [...edges, newEdge];
-    const updatedNodes = propagateStatuses(nodes, newEdges);
-    set({ edges: newEdges, nodes: updatedNodes });
+    const updatedNodes = propagateStatuses(nodes, testEdges);
+    set({ edges: testEdges, nodes: updatedNodes });
   },
 
   // Node CRUD
   addNode: (nodeType, position, stage) => {
     const id = `node_${generateId()}`;
     const rfType = nodeType === 'milestone' ? 'milestone' : nodeType === 'user_checkpoint' ? 'checkpoint' : nodeType === 'information_request' ? 'infoRequest' : 'workPackage';
+
+    // Default group for work packages and info requests
+    const defaultGroups = (rfType === 'workPackage' || rfType === 'infoRequest') ? [{
+      id: `g_${generateId()}`,
+      inputLabel: 'Input',
+      outputs: [{ id: `o_${generateId()}`, label: 'Output' }],
+    }] : [];
+
     const newNode = {
       id,
       type: rfType,
       position,
       data: {
-        label: 'New ' + nodeType.replace(/_/g, ' '),
+        label: nodeType === 'work_package' ? 'New Work Package'
+          : nodeType === 'information_request' ? 'New Info Request'
+          : nodeType === 'milestone' ? 'New Milestone'
+          : 'New Checkpoint',
         nodeType,
         stage,
         role: null,
@@ -221,6 +282,7 @@ const useProjectStore = create((set, get) => ({
         target_date: null,
         linked_docs: [],
         typical_inputs: [],
+        groups: defaultGroups,
         history: [{ event: 'created', timestamp: new Date().toISOString() }],
       },
     };
@@ -235,6 +297,116 @@ const useProjectStore = create((set, get) => ({
       );
       const updated = propagateStatuses(nodes, state.edges);
       return { nodes: updated };
+    });
+  },
+
+  // Group management
+  addGroupToNode: (nodeId) => {
+    set((state) => {
+      const groupId = `g_${generateId()}`;
+      const outputId = `o_${generateId()}`;
+      const nodes = state.nodes.map((n) => {
+        if (n.id !== nodeId) return n;
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            groups: [...(n.data.groups || []), {
+              id: groupId,
+              inputLabel: 'New input',
+              outputs: [{ id: outputId, label: 'Output' }],
+            }],
+          },
+        };
+      });
+      return { nodes };
+    });
+  },
+
+  addOutputToGroup: (nodeId, groupId) => {
+    set((state) => {
+      const outputId = `o_${generateId()}`;
+      const nodes = state.nodes.map((n) => {
+        if (n.id !== nodeId) return n;
+        const groups = (n.data.groups || []).map((g) => {
+          if (g.id !== groupId) return g;
+          return { ...g, outputs: [...g.outputs, { id: outputId, label: 'Output' }] };
+        });
+        return { ...n, data: { ...n.data, groups } };
+      });
+      return { nodes };
+    });
+  },
+
+  updateGroup: (nodeId, groupId, updates) => {
+    set((state) => {
+      const nodes = state.nodes.map((n) => {
+        if (n.id !== nodeId) return n;
+        const groups = (n.data.groups || []).map((g) => {
+          if (g.id !== groupId) return g;
+          return { ...g, ...updates };
+        });
+        return { ...n, data: { ...n.data, groups } };
+      });
+      return { nodes };
+    });
+  },
+
+  updateOutput: (nodeId, groupId, outputId, updates) => {
+    set((state) => {
+      const nodes = state.nodes.map((n) => {
+        if (n.id !== nodeId) return n;
+        const groups = (n.data.groups || []).map((g) => {
+          if (g.id !== groupId) return g;
+          const outputs = g.outputs.map((o) =>
+            o.id === outputId ? { ...o, ...updates } : o
+          );
+          return { ...g, outputs };
+        });
+        return { ...n, data: { ...n.data, groups } };
+      });
+      return { nodes };
+    });
+  },
+
+  removeGroup: (nodeId, groupId) => {
+    set((state) => {
+      const nodes = state.nodes.map((n) => {
+        if (n.id !== nodeId) return n;
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            groups: (n.data.groups || []).filter((g) => g.id !== groupId),
+          },
+        };
+      });
+      // Also remove edges connected to this group's handles
+      const edges = state.edges.filter((e) => {
+        if (e.target === nodeId && e.targetHandle === `input-${groupId}`) return false;
+        if (e.source === nodeId && e.sourceHandle?.startsWith(`output-${groupId}-`)) return false;
+        return true;
+      });
+      return { nodes, edges };
+    });
+  },
+
+  removeOutput: (nodeId, groupId, outputId) => {
+    set((state) => {
+      const nodes = state.nodes.map((n) => {
+        if (n.id !== nodeId) return n;
+        const groups = (n.data.groups || []).map((g) => {
+          if (g.id !== groupId) return g;
+          return { ...g, outputs: g.outputs.filter((o) => o.id !== outputId) };
+        });
+        return { ...n, data: { ...n.data, groups } };
+      });
+      // Remove edges from this output
+      const edges = state.edges.filter((e) => {
+        if (e.source === nodeId && e.sourceHandle === `output-${groupId}-${outputId}`) return false;
+        return true;
+      });
+      return { nodes, edges };
     });
   },
 
@@ -313,7 +485,6 @@ export function getStageForPosition(posX, stageColumns) {
       return parseInt(col.key);
     }
   }
-  // If past the last column, assign to last
   if (stageColumns.length > 0) {
     const last = stageColumns[stageColumns.length - 1];
     if (posX >= last.x + last.width) return parseInt(last.key);

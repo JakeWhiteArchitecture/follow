@@ -22,6 +22,11 @@ const inputStyle = {
 };
 const selectStyle = { ...inputStyle, background: '#fff' };
 const textareaStyle = { ...inputStyle, minHeight: 60, resize: 'vertical' };
+const smallBtnStyle = {
+  padding: '3px 8px', fontSize: 10, border: '1px solid #d1d5db',
+  borderRadius: 3, background: '#fff', cursor: 'pointer', color: '#374151',
+};
+const dangerBtnStyle = { ...smallBtnStyle, color: '#ef4444', border: '1px solid #fca5a5' };
 
 export default function PropertiesPanel() {
   const selectedNode = useProjectStore((s) => s.selectedNode);
@@ -31,11 +36,18 @@ export default function PropertiesPanel() {
   const deleteNode = useProjectStore((s) => s.deleteNode);
   const deselectNode = useProjectStore((s) => s.deselectNode);
   const readOnly = useProjectStore((s) => s.readOnly);
+  const addGroupToNode = useProjectStore((s) => s.addGroupToNode);
+  const addOutputToGroup = useProjectStore((s) => s.addOutputToGroup);
+  const updateGroup = useProjectStore((s) => s.updateGroup);
+  const updateOutput = useProjectStore((s) => s.updateOutput);
+  const removeGroup = useProjectStore((s) => s.removeGroup);
+  const removeOutput = useProjectStore((s) => s.removeOutput);
 
   const node = nodes.find((n) => n.id === selectedNode);
   if (!node) return null;
 
   const { data } = node;
+  const groups = data.groups || [];
 
   const update = (field, value) => {
     updateNodeData(node.id, { [field]: value });
@@ -46,6 +58,8 @@ export default function PropertiesPanel() {
       deleteNode(node.id);
     }
   };
+
+  const hasGroups = data.nodeType === 'work_package' || data.nodeType === 'information_request';
 
   return (
     <div style={panelStyle}>
@@ -94,6 +108,68 @@ export default function PropertiesPanel() {
         <option value="complete">Complete</option>
         <option value="blocked">Blocked</option>
       </select>
+
+      {/* Groups / Pins editor */}
+      {hasGroups && (
+        <>
+          <label style={labelStyle}>Input Groups & Pins</label>
+          <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 4, padding: 8 }}>
+            {groups.map((group, gi) => (
+              <div key={group.id} style={{
+                marginBottom: gi < groups.length - 1 ? 8 : 0,
+                paddingBottom: gi < groups.length - 1 ? 8 : 0,
+                borderBottom: gi < groups.length - 1 ? '1px solid #e5e7eb' : 'none',
+              }}>
+                {/* Group input label */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+                  <span style={{ fontSize: 10, color: '#6b7280', width: 14 }}>IN</span>
+                  <input
+                    style={{ ...inputStyle, padding: '3px 6px', fontSize: 11, flex: 1 }}
+                    value={group.inputLabel}
+                    onChange={(e) => updateGroup(node.id, group.id, { inputLabel: e.target.value })}
+                    disabled={readOnly}
+                  />
+                  {!readOnly && groups.length > 1 && (
+                    <button style={dangerBtnStyle} onClick={() => removeGroup(node.id, group.id)}>&times;</button>
+                  )}
+                </div>
+
+                {/* Outputs */}
+                {group.outputs.map((out) => (
+                  <div key={out.id} style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 14, marginTop: 2 }}>
+                    <span style={{ fontSize: 10, color: '#9ca3af', width: 24 }}>OUT</span>
+                    <input
+                      style={{ ...inputStyle, padding: '3px 6px', fontSize: 11, flex: 1 }}
+                      value={out.label}
+                      onChange={(e) => updateOutput(node.id, group.id, out.id, { label: e.target.value })}
+                      disabled={readOnly}
+                    />
+                    {!readOnly && group.outputs.length > 1 && (
+                      <button style={dangerBtnStyle} onClick={() => removeOutput(node.id, group.id, out.id)}>&times;</button>
+                    )}
+                  </div>
+                ))}
+
+                {/* Add output button */}
+                {!readOnly && (
+                  <button style={{ ...smallBtnStyle, marginLeft: 14, marginTop: 4 }}
+                    onClick={() => addOutputToGroup(node.id, group.id)}>
+                    + Add output
+                  </button>
+                )}
+              </div>
+            ))}
+
+            {/* Add group button */}
+            {!readOnly && (
+              <button style={{ ...smallBtnStyle, marginTop: 8, width: '100%' }}
+                onClick={() => addGroupToNode(node.id)}>
+                + Add input group
+              </button>
+            )}
+          </div>
+        </>
+      )}
 
       <label style={labelStyle}>Notes</label>
       <textarea style={textareaStyle} value={data.notes || ''}
