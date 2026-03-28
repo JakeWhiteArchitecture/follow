@@ -13,6 +13,7 @@ import MilestoneNode from '../nodes/MilestoneNode';
 import CheckpointNode from '../nodes/CheckpointNode';
 import Toolbar from './Toolbar';
 import PropertiesPanel from './PropertiesPanel';
+import DeletableEdge from './DeletableEdge';
 import { StickyHeaders } from './StageColumns';
 import { STAGE_COLORS } from '../utils/colors';
 
@@ -23,10 +24,14 @@ const nodeTypes = {
   checkpoint: CheckpointNode,
 };
 
+const edgeTypes = {
+  deletable: DeletableEdge,
+};
+
 const defaultEdgeOptions = {
   animated: false,
   style: { stroke: '#38bdf8', strokeWidth: 2 },
-  type: 'smoothstep',
+  type: 'deletable',
 };
 
 export default function Canvas() {
@@ -112,6 +117,7 @@ export default function Canvas() {
           onPaneClick={onPaneClick}
           onViewportChange={setViewport}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           defaultEdgeOptions={defaultEdgeOptions}
           fitView
           snapToGrid

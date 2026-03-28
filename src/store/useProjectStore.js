@@ -106,7 +106,7 @@ const useProjectStore = create((set, get) => ({
       target: e.target,
       targetHandle: e.target_handle || 'input',
       animated: true,
-      type: 'smoothstep',
+      type: 'deletable',
     }));
 
     set({
@@ -237,7 +237,7 @@ const useProjectStore = create((set, get) => ({
         target: connection.target,
         targetHandle: `input-${groupId}`,
         animated: true,
-        type: 'smoothstep',
+        type: 'deletable',
       };
 
       const testEdges = [...edges, newEdge];
@@ -259,7 +259,7 @@ const useProjectStore = create((set, get) => ({
       target: connection.target,
       targetHandle: connection.targetHandle,
       animated: true,
-      type: 'smoothstep',
+      type: 'deletable',
     };
 
     const testEdges = [...edges, newEdge];
@@ -446,6 +446,14 @@ const useProjectStore = create((set, get) => ({
         return true;
       });
       return { nodes, edges };
+    });
+  },
+
+  deleteEdge: (edgeId) => {
+    set((state) => {
+      const edges = state.edges.filter((e) => e.id !== edgeId);
+      const nodes = propagateStatuses(state.nodes, edges);
+      return { edges, nodes };
     });
   },
 
