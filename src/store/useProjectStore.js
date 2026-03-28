@@ -185,14 +185,33 @@ const useProjectStore = create((set, get) => ({
   onConnect: (connection) => {
     const { nodes, edges } = get();
     const targetNode = nodes.find((n) => n.id === connection.target);
+    const sourceNode = nodes.find((n) => n.id === connection.source);
+
+    // Resolve the output label from the source handle
+    const resolveSourceOutputLabel = () => {
+      if (!sourceNode || !connection.sourceHandle) return 'Input';
+      // Handle format: "output-{groupId}-{outputId}" or "output"
+      const parts = connection.sourceHandle.split('-');
+      if (parts.length >= 3 && parts[0] === 'output') {
+        const srcGroupId = parts[1];
+        const srcOutputId = parts.slice(2).join('-');
+        const srcGroup = (sourceNode.data.groups || []).find((g) => g.id === srcGroupId);
+        if (srcGroup) {
+          const srcOutput = srcGroup.outputs.find((o) => o.id === srcOutputId);
+          if (srcOutput) return srcOutput.label;
+        }
+      }
+      return sourceNode.data.label || 'Input';
+    };
 
     // If the target handle is "new-group", create a new group on the target node
     if (connection.targetHandle === 'new-group' && targetNode) {
       const groupId = `g_${generateId()}`;
       const outputId = `o_${generateId()}`;
+      const inputLabel = resolveSourceOutputLabel();
       const newGroup = {
         id: groupId,
-        inputLabel: 'New input',
+        inputLabel,
         outputs: [{ id: outputId, label: 'Output' }],
       };
 
@@ -249,8 +268,28 @@ const useProjectStore = create((set, get) => ({
       return;
     }
 
-    const updatedNodes = propagateStatuses(nodes, testEdges);
-    set({ edges: testEdges, nodes: updatedNodes });
+    // Auto-name: if target input still has a default label, rename it from the source output
+    let updatedNodes = [...nodes];
+    if (targetNode && connection.targetHandle?.startsWith('input-')) {
+      const targetGroupId = connection.targetHandle.replace('input-', '');
+      const targetGroup = (targetNode.data.groups || []).find((g) => g.id === targetGroupId);
+      if (targetGroup && (!targetGroup.inputLabel || targetGroup.inputLabel === 'Input' || targetGroup.inputLabel === 'New input')) {
+        const label = resolveSourceOutputLabel();
+        if (label !== 'Input') {
+          updatedNodes = updatedNodes.map((n) => {
+            if (n.id !== connection.target) return n;
+            const groups = (n.data.groups || []).map((g) => {
+              if (g.id !== targetGroupId) return g;
+              return { ...g, inputLabel: label };
+            });
+            return { ...n, data: { ...n.data, groups } };
+          });
+        }
+      }
+    }
+
+    const finalNodes = propagateStatuses(updatedNodes, testEdges);
+    set({ edges: testEdges, nodes: finalNodes });
   },
 
   // Node CRUD

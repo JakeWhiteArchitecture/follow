@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { STATUS_COLORS } from '../utils/colors';
 import useProjectStore from '../store/useProjectStore';
@@ -9,10 +9,79 @@ const GROUP_DIVIDER_HEIGHT = 1;
 const PIN_SIZE = 10;
 const NODE_MIN_WIDTH = 220;
 const ADD_ZONE_HEIGHT = 24;
+const ROLE_HEIGHT = 16;
+
+function InlineEdit({ value, onChange, style, inputStyle: extraInputStyle }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const inputRef = useRef(null);
+
+  const startEdit = useCallback((e) => {
+    e.stopPropagation();
+    setDraft(value);
+    setEditing(true);
+    // Focus after render
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }, [value]);
+
+  const commit = useCallback(() => {
+    setEditing(false);
+    if (draft.trim() && draft !== value) {
+      onChange(draft.trim());
+    }
+  }, [draft, value, onChange]);
+
+  const onKeyDown = useCallback((e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') { commit(); }
+    if (e.key === 'Escape') { setEditing(false); }
+  }, [commit]);
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={onKeyDown}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#2d2d3d',
+          border: '1px solid #3b82f6',
+          borderRadius: 2,
+          color: '#e5e7eb',
+          outline: 'none',
+          padding: '0 3px',
+          margin: '-1px 0',
+          width: '100%',
+          ...style,
+          ...extraInputStyle,
+        }}
+      />
+    );
+  }
+
+  return (
+    <span
+      onDoubleClick={startEdit}
+      style={{ cursor: 'text', ...style }}
+      title="Double-click to edit"
+    >
+      {value}
+    </span>
+  );
+}
 
 export default function WorkPackageNode({ id, data, selected }) {
   const colors = STATUS_COLORS[data.status] || STATUS_COLORS.pending;
   const contacts = useProjectStore((s) => s.project.project.contacts);
+  const updateNodeData = useProjectStore((s) => s.updateNodeData);
+  const updateGroup = useProjectStore((s) => s.updateGroup);
+  const updateOutput = useProjectStore((s) => s.updateOutput);
+  const readOnly = useProjectStore((s) => s.readOnly);
+
   const contact = contacts.find((c) => c.id === data.role);
   const roleName = contact ? (contact.name || contact.discipline) : null;
   const isInfoRequest = data.nodeType === 'information_request';
@@ -23,17 +92,17 @@ export default function WorkPackageNode({ id, data, selected }) {
   groups.forEach((g, gi) => {
     const rowCount = Math.max(1, g.outputs?.length || 0);
     contentHeight += rowCount * PIN_ROW_HEIGHT;
-    if (gi < groups.length - 1) contentHeight += GROUP_DIVIDER_HEIGHT + 8; // divider + padding
+    if (gi < groups.length - 1) contentHeight += GROUP_DIVIDER_HEIGHT + 8;
   });
   if (groups.length === 0) contentHeight = PIN_ROW_HEIGHT;
-  contentHeight += ADD_ZONE_HEIGHT; // "drop here" zone
+  contentHeight += ADD_ZONE_HEIGHT;
 
-  const totalHeight = HEADER_HEIGHT + contentHeight + 8;
+  const totalHeight = HEADER_HEIGHT + ROLE_HEIGHT + contentHeight + 8;
 
   // Build handle positions
   let handleElements = [];
   let pinRows = [];
-  let yOffset = HEADER_HEIGHT + 4;
+  let yOffset = HEADER_HEIGHT + ROLE_HEIGHT + 4;
 
   groups.forEach((group, gi) => {
     const outputCount = group.outputs?.length || 0;
@@ -60,17 +129,28 @@ export default function WorkPackageNode({ id, data, selected }) {
       />
     );
 
-    // Input label
+    // Input label — inline editable
+    const groupId = group.id;
     pinRows.push(
       <div key={`inlabel-${group.id}`} style={{
         position: 'absolute',
         left: PIN_SIZE + 4,
-        top: inputCenterY - 7,
+        top: inputCenterY - 8,
         fontSize: 10,
         color: '#d1d5db',
         whiteSpace: 'nowrap',
+        maxWidth: NODE_MIN_WIDTH / 2 - PIN_SIZE - 12,
+        overflow: 'hidden',
       }}>
-        {group.inputLabel || 'Input'}
+        {readOnly ? (
+          <span>{group.inputLabel || 'Input'}</span>
+        ) : (
+          <InlineEdit
+            value={group.inputLabel || 'Input'}
+            onChange={(val) => updateGroup(id, groupId, { inputLabel: val })}
+            style={{ fontSize: 10, color: '#d1d5db' }}
+          />
+        )}
       </div>
     );
 
@@ -78,6 +158,7 @@ export default function WorkPackageNode({ id, data, selected }) {
     if (outputCount > 0) {
       group.outputs.forEach((out, oi) => {
         const outY = groupStartY + oi * PIN_ROW_HEIGHT + PIN_ROW_HEIGHT / 2;
+        const outId = out.id;
         handleElements.push(
           <Handle
             key={`out-${group.id}-${out.id}`}
@@ -100,13 +181,23 @@ export default function WorkPackageNode({ id, data, selected }) {
           <div key={`outlabel-${group.id}-${out.id}`} style={{
             position: 'absolute',
             right: PIN_SIZE + 4,
-            top: outY - 7,
+            top: outY - 8,
             fontSize: 10,
             color: '#d1d5db',
             whiteSpace: 'nowrap',
             textAlign: 'right',
+            maxWidth: NODE_MIN_WIDTH / 2 - PIN_SIZE - 12,
+            overflow: 'hidden',
           }}>
-            {out.label}
+            {readOnly ? (
+              <span>{out.label}</span>
+            ) : (
+              <InlineEdit
+                value={out.label}
+                onChange={(val) => updateOutput(id, groupId, outId, { label: val })}
+                style={{ fontSize: 10, color: '#d1d5db', textAlign: 'right' }}
+              />
+            )}
           </div>
         );
       });
@@ -131,7 +222,7 @@ export default function WorkPackageNode({ id, data, selected }) {
     }
   });
 
-  // "New group" drop zone at bottom — acts as a target handle
+  // "New group" drop zone at bottom
   const dropZoneY = yOffset + 4;
   handleElements.push(
     <Handle
@@ -165,7 +256,7 @@ export default function WorkPackageNode({ id, data, selected }) {
         cursor: 'grab',
       }}
     >
-      {/* Title bar */}
+      {/* Title bar — inline editable */}
       <div style={{
         height: HEADER_HEIGHT,
         background: colors.border,
@@ -175,17 +266,30 @@ export default function WorkPackageNode({ id, data, selected }) {
         justifyContent: 'space-between',
         padding: '0 8px',
       }}>
-        <span style={{
-          fontSize: 11,
-          fontWeight: 700,
-          color: '#fff',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          flex: 1,
-        }}>
-          {data.label}
-        </span>
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          {readOnly ? (
+            <span style={{
+              fontSize: 11, fontWeight: 700, color: '#fff',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {data.label}
+            </span>
+          ) : (
+            <InlineEdit
+              value={data.label}
+              onChange={(val) => updateNodeData(id, { label: val })}
+              style={{
+                fontSize: 11, fontWeight: 700, color: '#fff',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                display: 'block',
+              }}
+              inputStyle={{
+                background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.3)',
+                color: '#fff', fontWeight: 700,
+              }}
+            />
+          )}
+        </div>
         <span style={{
           fontSize: 8,
           color: 'rgba(255,255,255,0.7)',
@@ -193,6 +297,7 @@ export default function WorkPackageNode({ id, data, selected }) {
           textTransform: 'uppercase',
           fontWeight: 600,
           letterSpacing: '0.5px',
+          flexShrink: 0,
         }}>
           {data.status}
         </span>
@@ -204,7 +309,8 @@ export default function WorkPackageNode({ id, data, selected }) {
         color: roleName ? '#6b7280' : '#ef4444',
         fontStyle: roleName ? 'normal' : 'italic',
         padding: '2px 8px 0',
-        borderBottom: groups.length > 0 ? 'none' : undefined,
+        height: ROLE_HEIGHT,
+        lineHeight: ROLE_HEIGHT + 'px',
       }}>
         {roleName || 'Unassigned'}
         {data.stage !== undefined && (
