@@ -69,17 +69,22 @@ export default function Canvas() {
 
   const onPaneClick = useCallback((event) => {
     if (addMode && !readOnly) {
-      // Get the React Flow instance to convert screen coords to flow coords
+      const name = prompt(`Name this ${addMode.replace(/_/g, ' ')}:`);
+      if (!name || !name.trim()) {
+        setAddMode(null);
+        return;
+      }
+
       const bounds = reactFlowWrapper.current.getBoundingClientRect();
       const position = {
         x: (event.clientX - bounds.left - viewport.x) / viewport.zoom,
-        y: (event.clientY - bounds.top - 72 - viewport.y) / viewport.zoom, // 44 toolbar + 28 headers
+        y: (event.clientY - bounds.top - 72 - viewport.y) / viewport.zoom,
       };
 
       const stageColumns = getStageColumns(stages);
       const stage = getStageForPosition(position.x, stageColumns);
 
-      addNode(addMode, position, stage);
+      addNode(addMode, position, stage, name.trim());
       setAddMode(null);
     } else {
       deselectNode();

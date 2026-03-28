@@ -293,15 +293,20 @@ const useProjectStore = create((set, get) => ({
   },
 
   // Node CRUD
-  addNode: (nodeType, position, stage) => {
+  addNode: (nodeType, position, stage, name) => {
     const id = `node_${generateId()}`;
     const rfType = nodeType === 'milestone' ? 'milestone' : nodeType === 'user_checkpoint' ? 'checkpoint' : nodeType === 'information_request' ? 'infoRequest' : 'workPackage';
 
-    // Default group for work packages and info requests
+    const label = name || (nodeType === 'work_package' ? 'New Work Package'
+      : nodeType === 'information_request' ? 'New Info Request'
+      : nodeType === 'milestone' ? 'New Milestone'
+      : 'New Checkpoint');
+
+    // Default group for work packages and info requests — output named after the node
     const defaultGroups = (rfType === 'workPackage' || rfType === 'infoRequest') ? [{
       id: `g_${generateId()}`,
       inputLabel: 'Input',
-      outputs: [{ id: `o_${generateId()}`, label: 'Output' }],
+      outputs: [{ id: `o_${generateId()}`, label }],
     }] : [];
 
     const newNode = {
@@ -309,10 +314,7 @@ const useProjectStore = create((set, get) => ({
       type: rfType,
       position,
       data: {
-        label: nodeType === 'work_package' ? 'New Work Package'
-          : nodeType === 'information_request' ? 'New Info Request'
-          : nodeType === 'milestone' ? 'New Milestone'
-          : 'New Checkpoint',
+        label,
         nodeType,
         stage,
         role: null,
