@@ -77,6 +77,8 @@ function InlineEdit({ value, onChange, style, inputStyle: extraInputStyle }) {
 export default function WorkPackageNode({ id, data, selected }) {
   const colors = STATUS_COLORS[data.status] || STATUS_COLORS.pending;
   const contacts = useProjectStore((s) => s.project.project.contacts);
+  const highlighted = useProjectStore((s) => s.highlightedNodes.has(id));
+  const selectedNode = useProjectStore((s) => s.selectedNode);
   const updateNodeData = useProjectStore((s) => s.updateNodeData);
   const updateGroup = useProjectStore((s) => s.updateGroup);
   const updateOutput = useProjectStore((s) => s.updateOutput);
@@ -249,9 +251,13 @@ export default function WorkPackageNode({ id, data, selected }) {
         height: totalHeight,
         background: '#1e1e2e',
         borderRadius: 4,
-        border: `2px ${isInfoRequest ? 'dashed' : 'solid'} ${selected ? '#3b82f6' : '#2d2d3d'}`,
+        border: `2px ${isInfoRequest ? 'dashed' : 'solid'} ${selected ? '#3b82f6' : (highlighted && selectedNode !== id) ? '#60a5fa50' : '#2d2d3d'}`,
         position: 'relative',
-        boxShadow: selected ? '0 0 0 1px #3b82f6' : '0 2px 8px rgba(0,0,0,0.3)',
+        boxShadow: selected
+          ? '0 0 0 2px #3b82f6, 0 0 20px rgba(59,130,246,0.5), 0 4px 20px rgba(0,0,0,0.5)'
+          : (highlighted && selectedNode !== id)
+          ? '0 0 12px rgba(96,165,250,0.4), 0 4px 16px rgba(0,0,0,0.5)'
+          : '0 4px 16px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.3)',
         overflow: 'visible',
         cursor: 'grab',
       }}

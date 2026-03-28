@@ -1,5 +1,5 @@
 /**
- * Dependency propagation and cycle detection.
+ * Dependency propagation, cycle detection, and chain tracing.
  *
  * Status rules:
  * - PENDING: one or more upstream inputs incomplete
@@ -100,4 +100,55 @@ export function detectCycle(nodes, edges) {
   }
 
   return false;
+}
+
+/**
+ * Find all nodes and edges in the upstream and downstream chain of a given node.
+ * Returns { nodeIds: Set, edgeIds: Set }
+ */
+export function traceChain(nodeId, edges) {
+  const nodeIds = new Set([nodeId]);
+  const edgeIds = new Set();
+
+  // Build forward and backward adjacency from edges
+  const downstream = new Map(); // source → [{target, edgeId}]
+  const upstream = new Map();   // target → [{source, edgeId}]
+  for (const e of edges) {
+    if (!downstream.has(e.source)) downstream.set(e.source, []);
+    downstream.get(e.source).push({ target: e.target, edgeId: e.id });
+    if (!upstream.has(e.target)) upstream.set(e.target, []);
+    upstream.get(e.target).push({ source: e.source, edgeId: e.id });
+  }
+
+  // Walk downstream
+  const queue = [nodeId];
+  const visited = new Set([nodeId]);
+  while (queue.length > 0) {
+    const current = queue.shift();
+    for (const { target, edgeId } of downstream.get(current) || []) {
+      edgeIds.add(edgeId);
+      nodeIds.add(target);
+      if (!visited.has(target)) {
+        visited.add(target);
+        queue.push(target);
+      }
+    }
+  }
+
+  // Walk upstream
+  const queue2 = [nodeId];
+  const visited2 = new Set([nodeId]);
+  while (queue2.length > 0) {
+    const current = queue2.shift();
+    for (const { source, edgeId } of upstream.get(current) || []) {
+      edgeIds.add(edgeId);
+      nodeIds.add(source);
+      if (!visited2.has(source)) {
+        visited2.add(source);
+        queue2.push(source);
+      }
+    }
+  }
+
+  return { nodeIds, edgeIds };
 }

@@ -41,6 +41,7 @@ export default function Canvas() {
   const onEdgesChange = useProjectStore((s) => s.onEdgesChange);
   const onConnect = useProjectStore((s) => s.onConnect);
   const addNode = useProjectStore((s) => s.addNode);
+  const addNodeAndConnect = useProjectStore((s) => s.addNodeAndConnect);
   const selectNode = useProjectStore((s) => s.selectNode);
   const deselectNode = useProjectStore((s) => s.deselectNode);
   const selectedNode = useProjectStore((s) => s.selectedNode);
@@ -50,6 +51,7 @@ export default function Canvas() {
   const [addMode, setAddMode] = useState(null);
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
   const reactFlowWrapper = useRef(null);
+  const connectStartRef = useRef(null);
 
   // Escape key to cancel add mode
   useEffect(() => {
@@ -91,12 +93,41 @@ export default function Canvas() {
     }
   }, [addMode, readOnly, viewport, stages, addNode, deselectNode, setAddMode]);
 
-  const handleFitView = useCallback(() => {
-    // will be set by ReactFlow
+  // Track where a connection drag starts
+  const onConnectStart = useCallback((event, params) => {
+    connectStartRef.current = params;
   }, []);
 
-  // Generate stage background elements as React Flow nodes wouldn't work well
-  // We'll use the Background slots approach
+  // When a connection drag ends on empty canvas, create a new node and wire it
+  const onConnectEnd = useCallback((event) => {
+    if (readOnly || !connectStartRef.current) return;
+
+    const startParams = connectStartRef.current;
+    connectStartRef.current = null;
+
+    // Check if the drop landed on a node/handle (React Flow handles that via onConnect)
+    // We only care about drops on empty canvas
+    const targetElement = event.target;
+    const isPane = targetElement.classList?.contains('react-flow__pane');
+    if (!isPane) return;
+
+    const name = prompt('Name this work section:');
+    if (!name || !name.trim()) return;
+
+    const bounds = reactFlowWrapper.current.getBoundingClientRect();
+    const clientX = event.clientX || event.changedTouches?.[0]?.clientX || 0;
+    const clientY = event.clientY || event.changedTouches?.[0]?.clientY || 0;
+    const position = {
+      x: (clientX - bounds.left - viewport.x) / viewport.zoom,
+      y: (clientY - bounds.top - 72 - viewport.y) / viewport.zoom,
+    };
+
+    const stageColumns = getStageColumns(stages);
+    const stage = getStageForPosition(position.x, stageColumns);
+
+    addNodeAndConnect('work_package', position, stage, name.trim(), startParams);
+  }, [readOnly, viewport, stages, addNodeAndConnect]);
+
   const stageColumns = getStageColumns(stages);
 
   return (
@@ -106,7 +137,7 @@ export default function Canvas() {
 
       <div style={{
         position: 'absolute',
-        top: 72, // 44 + 28
+        top: 72,
         left: 0,
         right: selectedNode ? 300 : 0,
         bottom: 0,
@@ -118,6 +149,8 @@ export default function Canvas() {
           onNodesChange={readOnly ? undefined : onNodesChange}
           onEdgesChange={readOnly ? undefined : onEdgesChange}
           onConnect={readOnly ? undefined : onConnect}
+          onConnectStart={readOnly ? undefined : onConnectStart}
+          onConnectEnd={readOnly ? undefined : onConnectEnd}
           onNodeClick={onNodeClick}
           onPaneClick={onPaneClick}
           onViewportChange={setViewport}
@@ -126,17 +159,16 @@ export default function Canvas() {
           defaultEdgeOptions={defaultEdgeOptions}
           fitView
           snapToGrid
-          snapGrid={[10, 10]}
+          snapGrid={[20, 20]}
           deleteKeyCode={readOnly ? null : 'Backspace'}
           selectionKeyCode={readOnly ? null : 'Shift'}
           multiSelectionKeyCode="Shift"
           nodesDraggable={!readOnly}
           nodesConnectable={!readOnly}
           elementsSelectable
-          style={{ background: '#fafafa' }}
+          style={{ background: '#1a1a2e' }}
         >
-          <Background gap={20} size={1} color="#e5e7eb" />
-          {/* Stage column backgrounds rendered as SVG overlay */}
+          <Background gap={20} size={1} color="#2a2a3e" />
           <StageBackgrounds columns={stageColumns} />
         </ReactFlow>
       </div>
@@ -190,12 +222,11 @@ function StageBackgrounds({ columns }) {
             y={0}
             width={screenW}
             height="100%"
-            fill={col.inAppointment ? STAGE_COLORS[colorIdx] : '#f3f4f6'}
-            opacity={col.inAppointment ? 0.15 : 0.08}
+            fill={col.inAppointment ? STAGE_COLORS[colorIdx] : '#2a2a3e'}
+            opacity={col.inAppointment ? 0.12 : 0.06}
           />
         );
       })}
-      {/* Dashed column dividers */}
       {columns.map((col) => {
         const screenX = (col.x + col.width) * viewport.zoom + viewport.x;
         return (
@@ -205,7 +236,7 @@ function StageBackgrounds({ columns }) {
             y1={0}
             x2={screenX}
             y2="100%"
-            stroke="#d1d5db"
+            stroke="#3a3a4e"
             strokeWidth={1}
             strokeDasharray="4 4"
           />

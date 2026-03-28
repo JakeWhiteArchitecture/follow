@@ -20,6 +20,7 @@ export default function DeletableEdge({
   const [hovered, setHovered] = useState(false);
   const readOnly = useProjectStore((s) => s.readOnly);
   const deleteEdge = useProjectStore((s) => s.deleteEdge);
+  const highlighted = useProjectStore((s) => s.highlightedEdges.has(id));
 
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
@@ -30,8 +31,24 @@ export default function DeletableEdge({
     targetPosition,
   });
 
+  const isGlowing = highlighted && !hovered;
+  const strokeColor = hovered ? '#f87171' : isGlowing ? '#60a5fa' : (style.stroke || '#38bdf8');
+  const strokeW = hovered ? 3 : isGlowing ? 3 : (style.strokeWidth || 2);
+
   return (
     <>
+      {/* Glow filter for highlighted edges */}
+      {isGlowing && (
+        <defs>
+          <filter id={`glow-${id}`} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+      )}
       {/* Invisible wider path for easier hover target */}
       <path
         d={edgePath}
@@ -47,8 +64,9 @@ export default function DeletableEdge({
         markerEnd={markerEnd}
         style={{
           ...style,
-          stroke: hovered ? '#f87171' : (style.stroke || '#38bdf8'),
-          strokeWidth: hovered ? 3 : (style.strokeWidth || 2),
+          stroke: strokeColor,
+          strokeWidth: strokeW,
+          filter: isGlowing ? `url(#glow-${id})` : 'none',
           transition: 'stroke 0.15s, stroke-width 0.15s',
         }}
       />

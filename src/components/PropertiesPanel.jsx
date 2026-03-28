@@ -7,26 +7,27 @@ const panelStyle = {
   right: 0,
   width: 300,
   bottom: 0,
-  background: '#fff',
-  borderLeft: '1px solid #e5e7eb',
+  background: '#16162a',
+  borderLeft: '1px solid #2a2a3e',
   padding: 16,
   overflowY: 'auto',
   zIndex: 10,
   fontSize: 13,
+  color: '#d1d5db',
 };
 
-const labelStyle = { display: 'block', fontWeight: 600, marginBottom: 4, marginTop: 12, color: '#374151' };
+const labelStyle = { display: 'block', fontWeight: 600, marginBottom: 4, marginTop: 12, color: '#9ca3af' };
 const inputStyle = {
-  width: '100%', padding: '6px 10px', border: '1px solid #d1d5db',
-  borderRadius: 4, fontSize: 13, outline: 'none',
+  width: '100%', padding: '6px 10px', border: '1px solid #3a3a4e',
+  borderRadius: 4, fontSize: 13, outline: 'none', background: '#1e1e2e', color: '#d1d5db',
 };
-const selectStyle = { ...inputStyle, background: '#fff' };
+const selectStyle = { ...inputStyle, background: '#1e1e2e' };
 const textareaStyle = { ...inputStyle, minHeight: 60, resize: 'vertical' };
 const smallBtnStyle = {
-  padding: '3px 8px', fontSize: 10, border: '1px solid #d1d5db',
-  borderRadius: 3, background: '#fff', cursor: 'pointer', color: '#374151',
+  padding: '3px 8px', fontSize: 10, border: '1px solid #3a3a4e',
+  borderRadius: 3, background: '#2a2a3e', cursor: 'pointer', color: '#d1d5db',
 };
-const dangerBtnStyle = { ...smallBtnStyle, color: '#ef4444', border: '1px solid #fca5a5' };
+const dangerBtnStyle = { ...smallBtnStyle, color: '#ef4444', border: '1px solid #7f1d1d' };
 
 export default function PropertiesPanel() {
   const selectedNode = useProjectStore((s) => s.selectedNode);
@@ -113,12 +114,12 @@ export default function PropertiesPanel() {
       {hasGroups && (
         <>
           <label style={labelStyle}>Input Groups & Pins</label>
-          <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 4, padding: 8 }}>
+          <div style={{ background: '#1e1e2e', border: '1px solid #2a2a3e', borderRadius: 4, padding: 8 }}>
             {groups.map((group, gi) => (
               <div key={group.id} style={{
                 marginBottom: gi < groups.length - 1 ? 8 : 0,
                 paddingBottom: gi < groups.length - 1 ? 8 : 0,
-                borderBottom: gi < groups.length - 1 ? '1px solid #e5e7eb' : 'none',
+                borderBottom: gi < groups.length - 1 ? '1px solid #2a2a3e' : 'none',
               }}>
                 {/* Group input label */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
@@ -180,7 +181,7 @@ export default function PropertiesPanel() {
         onChange={(e) => update('target_date', e.target.value || null)} disabled={readOnly} />
 
       <label style={labelStyle}>Stage</label>
-      <div style={{ ...inputStyle, background: '#f9fafb', color: '#6b7280', border: '1px solid #e5e7eb' }}>
+      <div style={{ ...inputStyle, background: '#2a2a3e', color: '#6b7280', border: '1px solid #3a3a4e' }}>
         {data.stage !== undefined ? `Stage ${data.stage}` : 'Unknown'}
         <span style={{ fontSize: 10, marginLeft: 8 }}>(drag node to change)</span>
       </div>
@@ -189,9 +190,9 @@ export default function PropertiesPanel() {
         <button onClick={handleDelete} style={{
           marginTop: 20,
           padding: '8px 16px',
-          background: '#fee2e2',
-          color: '#991b1b',
-          border: '1px solid #fca5a5',
+          background: '#7f1d1d',
+          color: '#fca5a5',
+          border: '1px solid #991b1b',
           borderRadius: 4,
           fontSize: 12,
           cursor: 'pointer',

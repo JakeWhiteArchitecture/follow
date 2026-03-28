@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { applyNodeChanges, applyEdgeChanges } from '@xyflow/react';
-import { propagateStatuses, detectCycle } from '../utils/dependency';
+import { propagateStatuses, detectCycle, traceChain } from '../utils/dependency';
 import { generateId } from '../utils/id';
 
 const RIBA_STAGES = [
@@ -36,6 +36,8 @@ const useProjectStore = create((set, get) => ({
   nodes: [],
   edges: [],
   selectedNode: null,
+  highlightedNodes: new Set(),
+  highlightedEdges: new Set(),
   readOnly: false,
 
   ribaStages: RIBA_STAGES,
@@ -331,6 +333,102 @@ const useProjectStore = create((set, get) => ({
     return id;
   },
 
+  // Create a node and connect it to the handle that initiated the drag
+  addNodeAndConnect: (nodeType, position, stage, name, connectStart) => {
+    const { nodes, edges } = get();
+    const id = `node_${generateId()}`;
+    const rfType = 'workPackage';
+    const label = name;
+    const groupId = `g_${generateId()}`;
+    const outputId = `o_${generateId()}`;
+
+    const defaultGroups = [{
+      id: groupId,
+      inputLabel: 'Input',
+      outputs: [{ id: outputId, label }],
+    }];
+
+    const newNode = {
+      id,
+      type: rfType,
+      position,
+      data: {
+        label,
+        nodeType,
+        stage,
+        role: null,
+        status: 'active',
+        notes: '',
+        target_date: null,
+        linked_docs: [],
+        typical_inputs: [],
+        groups: defaultGroups,
+        history: [{ event: 'created', timestamp: new Date().toISOString() }],
+      },
+    };
+
+    const updatedNodes = [...nodes, newNode];
+
+    // Determine connection direction
+    const { nodeId: startNodeId, handleId: startHandleId, handleType } = connectStart;
+    let newEdge;
+
+    if (handleType === 'source') {
+      // Dragged from an output → new node is downstream, connect to its first input
+      // Auto-name the new node's input from the source output label
+      const sourceNode = nodes.find((n) => n.id === startNodeId);
+      let inputLabel = label;
+      if (sourceNode && startHandleId) {
+        const parts = startHandleId.split('-');
+        if (parts.length >= 3 && parts[0] === 'output') {
+          const srcGroup = (sourceNode.data.groups || []).find((g) => g.id === parts[1]);
+          if (srcGroup) {
+            const srcOut = srcGroup.outputs.find((o) => o.id === parts.slice(2).join('-'));
+            if (srcOut) inputLabel = srcOut.label;
+          }
+        }
+      }
+      // Update the new node's input label
+      updatedNodes[updatedNodes.length - 1] = {
+        ...newNode,
+        data: {
+          ...newNode.data,
+          groups: [{ ...defaultGroups[0], inputLabel }],
+        },
+      };
+
+      newEdge = {
+        id: `edge_${generateId()}`,
+        source: startNodeId,
+        sourceHandle: startHandleId,
+        target: id,
+        targetHandle: `input-${groupId}`,
+        animated: false,
+        type: 'deletable',
+      };
+    } else {
+      // Dragged from an input → new node is upstream, connect its first output to the start input
+      newEdge = {
+        id: `edge_${generateId()}`,
+        source: id,
+        sourceHandle: `output-${groupId}-${outputId}`,
+        target: startNodeId,
+        targetHandle: startHandleId,
+        animated: false,
+        type: 'deletable',
+      };
+    }
+
+    const newEdges = [...edges, newEdge];
+    if (detectCycle(updatedNodes, newEdges)) {
+      alert('Circular dependency detected. This connection is not allowed.');
+      return;
+    }
+
+    const finalNodes = propagateStatuses(updatedNodes, newEdges);
+    set({ nodes: finalNodes, edges: newEdges });
+  },
+
   updateNodeData: (nodeId, data) => {
     set((state) => {
       const nodes = state.nodes.map((n) =>
@@ -467,8 +565,12 @@ const useProjectStore = create((set, get) => ({
     }));
   },
 
-  selectNode: (nodeId) => set({ selectedNode: nodeId }),
-  deselectNode: () => set({ selectedNode: null }),
+  selectNode: (nodeId) => {
+    const { edges } = get();
+    const { nodeIds, edgeIds } = traceChain(nodeId, edges);
+    set({ selectedNode: nodeId, highlightedNodes: nodeIds, highlightedEdges: edgeIds });
+  },
+  deselectNode: () => set({ selectedNode: null, highlightedNodes: new Set(), highlightedEdges: new Set() }),
 
   // Contacts
   addContact: (contact) => {

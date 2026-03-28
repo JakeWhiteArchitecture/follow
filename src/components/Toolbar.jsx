@@ -4,18 +4,19 @@ import useProjectStore from '../store/useProjectStore';
 const btnStyle = {
   padding: '6px 12px',
   fontSize: 12,
-  border: '1px solid #d1d5db',
+  border: '1px solid #3a3a4e',
   borderRadius: 4,
-  background: '#fff',
+  background: '#2a2a3e',
+  color: '#d1d5db',
   cursor: 'pointer',
   whiteSpace: 'nowrap',
 };
 
 const activeBtnStyle = {
   ...btnStyle,
-  background: '#1e40af',
+  background: '#3b82f6',
   color: '#fff',
-  border: '1px solid #1e40af',
+  border: '1px solid #3b82f6',
 };
 
 export default function Toolbar({ addMode, setAddMode, onFitView }) {
@@ -69,22 +70,22 @@ export default function Toolbar({ addMode, setAddMode, onFitView }) {
       left: 0,
       right: 0,
       height: 44,
-      background: '#fff',
-      borderBottom: '1px solid #e5e7eb',
+      background: '#16162a',
+      borderBottom: '1px solid #2a2a3e',
       display: 'flex',
       alignItems: 'center',
       padding: '0 12px',
       gap: 6,
       zIndex: 10,
     }}>
-      <span style={{ fontWeight: 700, fontSize: 15, marginRight: 8 }}>follow</span>
+      <span style={{ fontWeight: 700, fontSize: 15, marginRight: 8, color: '#e5e7eb' }}>follow</span>
       <span style={{ fontSize: 12, color: '#6b7280', marginRight: 16 }}>
         {project.project?.name || 'Untitled'}
       </span>
 
       {!readOnly && (
         <>
-          <div style={{ width: 1, height: 24, background: '#e5e7eb' }} />
+          <div style={{ width: 1, height: 24, background: '#2a2a3e' }} />
           {nodeTypes.map((nt) => (
             <button
               key={nt.key}
@@ -94,7 +95,7 @@ export default function Toolbar({ addMode, setAddMode, onFitView }) {
               + {nt.label}
             </button>
           ))}
-          <div style={{ width: 1, height: 24, background: '#e5e7eb' }} />
+          <div style={{ width: 1, height: 24, background: '#2a2a3e' }} />
         </>
       )}
 
