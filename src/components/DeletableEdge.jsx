@@ -6,7 +6,8 @@ import {
 } from '@xyflow/react';
 import useProjectStore from '../store/useProjectStore';
 
-const FAN_SPREAD = 8;
+const FAN_SPREAD = 10;
+const ROUTE_SPREAD = 30; // vertical segment offset for parallel routes
 
 export default function DeletableEdge({
   id,
@@ -59,15 +60,16 @@ export default function DeletableEdge({
     return { srcOffset: srcOff, tgtOffset: tgtOff };
   }, [edges, id, source, sourceHandleId, target, targetHandleId]);
 
+  // Offset the vertical segment for edges that would overlap
+  // Group edges that share a source node OR target node — their vertical
+  // segments tend to land at similar X positions
   const routeOffset = useMemo(() => {
-    const parallel = edges.filter(
-      (e) => (e.source === source && e.target === target) ||
-             (e.source === target && e.target === source)
-    );
-    if (parallel.length <= 1) return 0;
-    const idx = parallel.findIndex((e) => e.id === id);
-    return (idx - (parallel.length - 1) / 2) * (FAN_SPREAD * 2.5);
-  }, [edges, id, source, target]);
+    // Find all edges leaving the same source node (any handle)
+    const fromSameSource = edges.filter((e) => e.source === source);
+    if (fromSameSource.length <= 1) return 0;
+    const idx = fromSameSource.findIndex((e) => e.id === id);
+    return (idx - (fromSameSource.length - 1) / 2) * ROUTE_SPREAD;
+  }, [edges, id, source]);
 
   const adjustedSourceY = sourceY + srcOffset;
   const adjustedTargetY = targetY + tgtOffset;
