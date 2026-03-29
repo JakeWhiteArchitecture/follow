@@ -240,7 +240,7 @@ const megaNumberStyle = {
   pointerEvents: 'none',
   userSelect: 'none',
   zIndex: 0,
-  transition: 'transform 400ms cubic-bezier(0.4, 0, 0.2, 1), opacity 400ms ease',
+  transition: 'transform 500ms cubic-bezier(0.4, 0, 0.2, 1), opacity 500ms ease',
   fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
 };
 
@@ -276,7 +276,7 @@ function MegaStageNumber({ currentStage, stageKeys }) {
     timeoutRef.current = setTimeout(() => {
       setOutgoing(null);
       setIncoming({ stage: currentStage, phase: 'idle' });
-    }, 450);
+    }, 550);
 
     return () => clearTimeout(timeoutRef.current);
   }, [currentStage, stageKeys]);
@@ -284,26 +284,28 @@ function MegaStageNumber({ currentStage, stageKeys }) {
   const colorIdx = parseInt(incoming.stage);
   const inColor = STAGE_COLORS[colorIdx] || '#60a5fa';
 
-  // Incoming transform
-  let inTransform = 'translate(-50%, -50%)';
+  // Incoming transform — enters from opposite side with subtle rotation
+  let inTransform = 'translate(-50%, -50%) rotate(0deg)';
   let inOpacity = 0.07;
   if (incoming.phase === 'enter') {
     const offset = incoming.direction === 'right' ? '60%' : '-60%';
-    inTransform = `translate(-50%, -50%) translateX(${offset})`;
+    const rot = incoming.direction === 'right' ? '8deg' : '-8deg';
+    inTransform = `translate(-50%, -50%) translateX(${offset}) rotate(${rot})`;
     inOpacity = 0;
   }
 
   return (
     <>
-      {/* Outgoing number */}
+      {/* Outgoing number — slides + rotates off */}
       {outgoing && (() => {
         const outColorIdx = parseInt(outgoing.stage);
         const outColor = STAGE_COLORS[outColorIdx] || '#60a5fa';
         const exitX = outgoing.direction === 'right' ? '-60%' : '60%';
+        const exitRot = outgoing.direction === 'right' ? '-8deg' : '8deg';
         return (
           <div style={{
             ...megaNumberStyle,
-            transform: `translate(-50%, -50%) translateX(${exitX})`,
+            transform: `translate(-50%, -50%) translateX(${exitX}) rotate(${exitRot})`,
             color: outColor,
             opacity: 0,
           }}>
