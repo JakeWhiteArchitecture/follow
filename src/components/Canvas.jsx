@@ -780,11 +780,18 @@ export default function Canvas() {
   const selectedNode = useProjectStore((s) => s.selectedNode);
   const deselectNode = useProjectStore((s) => s.deselectNode);
   const readOnly = useProjectStore((s) => s.readOnly);
+  const projectVersion = useProjectStore((s) => s.projectVersion);
 
   const stageKeys = Object.keys(stages).sort((a, b) => parseInt(a) - parseInt(b));
   const firstAppt = stageKeys.find((k) => stages[k]?.in_appointment) || stageKeys[0] || '0';
   const [currentStage, setCurrentStage] = useState(parseInt(firstAppt));
   const [addMode, setAddMode] = useState(null);
+
+  // Reset to first in-appointment stage on project import
+  useEffect(() => {
+    const newFirst = stageKeys.find((k) => stages[k]?.in_appointment) || stageKeys[0] || '0';
+    setCurrentStage(parseInt(newFirst));
+  }, [projectVersion]);
 
   // Sync currentStage to store so edge components can read it
   useEffect(() => {
@@ -829,6 +836,7 @@ export default function Canvas() {
         transition: 'right 0.2s ease',
       }}>
         <CanvasInner
+          key={projectVersion}
           currentStage={currentStage}
           setCurrentStage={setCurrentStage}
           addMode={addMode}

@@ -40,6 +40,7 @@ const useProjectStore = create((set, get) => ({
   highlightedNodes: new Set(),
   highlightedEdges: new Set(),
   currentStage: 0,
+  projectVersion: 0,
   readOnly: false,
 
   ribaStages: RIBA_STAGES,
@@ -113,14 +114,15 @@ const useProjectStore = create((set, get) => ({
       type: 'deletable',
     }));
 
-    set({
+    set((state) => ({
       project: json,
       nodes,
       edges,
       modules: json.modules || [],
       screen: 'canvas',
       readOnly: false,
-    });
+      projectVersion: state.projectVersion + 1,
+    }));
   },
 
   loadReadOnly: (json) => {
