@@ -322,8 +322,8 @@ function MegaStageNumber({ currentStage, stageKeys }) {
   if (anim) {
     const { prevStage, nextStage, dir } = anim;
     // Barrel rotation: going right, old number rotates away to the left (negative Y)
-    const exitRotY = dir === 'right' ? '-70deg' : '70deg';
-    const enterRotY = dir === 'right' ? '70deg' : '-70deg';
+    const exitRotY = dir === 'right' ? '-18deg' : '18deg';
+    const enterRotY = dir === 'right' ? '18deg' : '-18deg';
     const prevColor = STAGE_COLORS[parseInt(prevStage)] || '#60a5fa';
     const nextColor = STAGE_COLORS[parseInt(nextStage)] || '#60a5fa';
 
