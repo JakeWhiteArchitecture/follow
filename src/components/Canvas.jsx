@@ -580,8 +580,8 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
   const nextLabel = hasNext ? `S${stageKeys[currentIdx + 1]}` : '';
 
   return (
-    <div ref={wrapperRef} style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
-      {/* Mega stage number underlay */}
+    <div ref={wrapperRef} style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', background: '#1a1a2e' }}>
+      {/* Mega stage number underlay — sits behind everything */}
       <MegaStageNumber currentStage={currentStage} stageKeys={stageKeys} />
 
       <ReactFlow
@@ -609,9 +609,9 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
         nodesDraggable={!readOnly}
         nodesConnectable={!readOnly}
         elementsSelectable
-        style={{ background: '#1a1a2e', zIndex: 1 }}
+        style={{ background: 'transparent', zIndex: 1 }}
       >
-        <Background gap={20} size={1} color="#2a2a3e" />
+        <Background gap={20} size={1} color="#2a2a3e" style={{ opacity: 0.5 }} />
       </ReactFlow>
 
       {/* Module background rectangles — behind nodes */}
