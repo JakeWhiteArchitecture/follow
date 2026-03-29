@@ -786,6 +786,11 @@ export default function Canvas() {
   const [currentStage, setCurrentStage] = useState(parseInt(firstAppt));
   const [addMode, setAddMode] = useState(null);
 
+  // Sync currentStage to store so edge components can read it
+  useEffect(() => {
+    useProjectStore.setState({ currentStage });
+  }, [currentStage]);
+
   // Keyboard navigation
   useEffect(() => {
     const handler = (e) => {

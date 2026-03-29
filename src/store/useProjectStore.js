@@ -39,6 +39,7 @@ const useProjectStore = create((set, get) => ({
   selectedNode: null,
   highlightedNodes: new Set(),
   highlightedEdges: new Set(),
+  currentStage: 0,
   readOnly: false,
 
   ribaStages: RIBA_STAGES,

@@ -6,7 +6,7 @@ import {
 } from '@xyflow/react';
 import useProjectStore from '../store/useProjectStore';
 
-const FAN_SPREAD = 8; // pixels between fanned edges at a shared pin
+const FAN_SPREAD = 8;
 
 export default function DeletableEdge({
   id,
@@ -28,10 +28,20 @@ export default function DeletableEdge({
   const deleteEdge = useProjectStore((s) => s.deleteEdge);
   const highlighted = useProjectStore((s) => s.highlightedEdges.has(id));
   const edges = useProjectStore((s) => s.edges);
+  const currentStage = useProjectStore((s) => s.currentStage);
+  const nodes = useProjectStore((s) => s.nodes);
+
+  // Determine if source/target are in the current stage
+  const sourceNode = useMemo(() => nodes.find((n) => n.id === source), [nodes, source]);
+  const targetNode = useMemo(() => nodes.find((n) => n.id === target), [nodes, target]);
+  const srcInStage = sourceNode?.data?.stage === currentStage;
+  const tgtInStage = targetNode?.data?.stage === currentStage;
+  const bothInStage = srcInStage && tgtInStage;
+  const neitherInStage = !srcInStage && !tgtInStage;
+  const isCrossStage = (srcInStage && !tgtInStage) || (!srcInStage && tgtInStage);
 
   // Compute vertical offset for edges sharing the same source or target handle
   const { srcOffset, tgtOffset } = useMemo(() => {
-    // Edges sharing same source handle
     const srcSiblings = edges.filter(
       (e) => e.source === source && e.sourceHandle === sourceHandleId
     );
@@ -39,7 +49,6 @@ export default function DeletableEdge({
     const srcCount = srcSiblings.length;
     const srcOff = srcCount > 1 ? (srcIdx - (srcCount - 1) / 2) * FAN_SPREAD : 0;
 
-    // Edges sharing same target handle
     const tgtSiblings = edges.filter(
       (e) => e.target === target && e.targetHandle === targetHandleId
     );
@@ -50,10 +59,7 @@ export default function DeletableEdge({
     return { srcOffset: srcOff, tgtOffset: tgtOff };
   }, [edges, id, source, sourceHandleId, target, targetHandleId]);
 
-  // Also offset the midpoint for edges that share both endpoints differently
-  // to prevent parallel overlapping routes
   const routeOffset = useMemo(() => {
-    // Find edges between the same two nodes (any handles)
     const parallel = edges.filter(
       (e) => (e.source === source && e.target === target) ||
              (e.source === target && e.target === source)
@@ -78,8 +84,23 @@ export default function DeletableEdge({
   });
 
   const isGlowing = highlighted && !hovered;
-  const strokeColor = hovered ? '#f87171' : isGlowing ? '#60a5fa' : (style.stroke || '#38bdf8');
+
+  // Determine stroke colour and opacity based on stage focus
+  let baseStroke = style.stroke || '#38bdf8';
+  let edgeOpacity = 1;
+
+  if (neitherInStage) {
+    edgeOpacity = 0.08;
+  } else if (isCrossStage) {
+    edgeOpacity = 0.35;
+  }
+
+  const strokeColor = hovered ? '#f87171' : isGlowing ? '#60a5fa' : baseStroke;
   const strokeW = hovered ? 3 : isGlowing ? 3 : (style.strokeWidth || 2);
+
+  // Unique gradient ID for cross-stage fade
+  const gradientId = `edge-grad-${id}`;
+  const needsGradient = isCrossStage && !hovered && !isGlowing;
 
   return (
     <>
@@ -92,6 +113,18 @@ export default function DeletableEdge({
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
+        </defs>
+      )}
+      {needsGradient && (
+        <defs>
+          <linearGradient id={gradientId}
+            x1={srcInStage ? '0%' : '100%'} y1="0%"
+            x2={srcInStage ? '100%' : '0%'} y2="0%"
+          >
+            <stop offset="0%" stopColor={baseStroke} stopOpacity="0.6" />
+            <stop offset="70%" stopColor={baseStroke} stopOpacity="0.12" />
+            <stop offset="100%" stopColor={baseStroke} stopOpacity="0.04" />
+          </linearGradient>
         </defs>
       )}
       {/* Invisible wider path for easier hover target */}
@@ -109,10 +142,11 @@ export default function DeletableEdge({
         markerEnd={markerEnd}
         style={{
           ...style,
-          stroke: strokeColor,
+          stroke: needsGradient ? `url(#${gradientId})` : strokeColor,
           strokeWidth: strokeW,
+          opacity: needsGradient ? 1 : edgeOpacity,
           filter: isGlowing ? `url(#glow-${id})` : 'none',
-          transition: 'stroke 0.15s, stroke-width 0.15s',
+          transition: 'opacity 500ms ease, stroke 0.15s, stroke-width 0.15s',
         }}
       />
       {hovered && !readOnly && (
