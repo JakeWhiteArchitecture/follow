@@ -121,9 +121,11 @@ export default function DeletableEdge({
             x1={srcInStage ? '0%' : '100%'} y1="0%"
             x2={srcInStage ? '100%' : '0%'} y2="0%"
           >
-            <stop offset="0%" stopColor={baseStroke} stopOpacity="0.6" />
-            <stop offset="70%" stopColor={baseStroke} stopOpacity="0.12" />
-            <stop offset="100%" stopColor={baseStroke} stopOpacity="0.04" />
+            <stop offset="0%" stopColor={baseStroke} stopOpacity="1" />
+            <stop offset="5%" stopColor={baseStroke} stopOpacity="0.8" />
+            <stop offset="30%" stopColor={baseStroke} stopOpacity="0.2" />
+            <stop offset="70%" stopColor={baseStroke} stopOpacity="0.08" />
+            <stop offset="100%" stopColor={baseStroke} stopOpacity="0.03" />
           </linearGradient>
         </defs>
       )}

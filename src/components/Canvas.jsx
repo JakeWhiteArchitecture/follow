@@ -404,7 +404,6 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
 
   // Smooth pan to the centroid of the current stage's nodes (preserve zoom)
   const isFirstRender = useRef(true);
-  const savedZoom = useRef(null);
   const panAnimRef = useRef(null);
   useEffect(() => {
     if (isFirstRender.current) {
@@ -413,7 +412,6 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
         const stageNodes = nodes.filter((n) => n.data.stage === currentStage);
         if (stageNodes.length > 0) {
           fitView({ nodes: stageNodes, padding: 0.4, duration: 0 });
-          setTimeout(() => { savedZoom.current = getViewport().zoom; }, 100);
         }
       }, 50);
       return () => clearTimeout(timer);
@@ -431,12 +429,12 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
         cx /= stageNodes.length;
         cy /= stageNodes.length;
 
-        const zoom = savedZoom.current || getViewport().zoom;
+        // Always use the current viewport zoom — never override what the user has set
+        const startVp = getViewport();
+        const zoom = startVp.zoom;
         const wrapper = wrapperRef.current;
         if (!wrapper) return;
         const { width } = wrapper.getBoundingClientRect();
-
-        const startVp = getViewport();
         const targetX = width / 2 - cx * zoom;
         const startX = startVp.x;
         const startY = startVp.y;
