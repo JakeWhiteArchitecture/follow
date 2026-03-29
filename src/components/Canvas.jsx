@@ -246,8 +246,8 @@ const megaNumberStyle = {
 
 function MegaStageNumber({ currentStage, stageKeys }) {
   const prevStageRef = useRef(currentStage);
-  const [outgoing, setOutgoing] = useState(null); // { stage, direction }
-  const [incoming, setIncoming] = useState({ stage: currentStage, phase: 'idle' });
+  const [display, setDisplay] = useState({ stage: currentStage, transform: 'translate(-50%, -50%)', opacity: 0.07 });
+  const [outgoing, setOutgoing] = useState(null);
   const timeoutRef = useRef(null);
 
   useEffect(() => {
@@ -259,76 +259,71 @@ function MegaStageNumber({ currentStage, stageKeys }) {
     const nextIdx = stageKeys.indexOf(String(currentStage));
     const dir = nextIdx > prevIdx ? 'right' : 'left';
 
-    // Start outgoing animation
-    setOutgoing({ stage: prev, direction: dir });
-    // Start incoming animation — initially offset
-    setIncoming({ stage: currentStage, phase: 'enter', direction: dir });
+    // Animate outgoing: start at center, then slide + rotate out
+    const exitX = dir === 'right' ? '-50%' : '50%';
+    const exitRot = dir === 'right' ? '-6deg' : '6deg';
+    setOutgoing({
+      stage: prev,
+      // Start at center (will transition to exit)
+      startTransform: 'translate(-50%, -50%) translateX(0) rotate(0deg)',
+      endTransform: `translate(-50%, -50%) translateX(${exitX}) rotate(${exitRot})`,
+      phase: 'start',
+    });
 
-    // After a frame, trigger the CSS transition by switching to 'active'
+    // Animate incoming: start offset, then slide to center
+    const enterX = dir === 'right' ? '50%' : '-50%';
+    const enterRot = dir === 'right' ? '6deg' : '-6deg';
+    setDisplay({
+      stage: currentStage,
+      transform: `translate(-50%, -50%) translateX(${enterX}) rotate(${enterRot})`,
+      opacity: 0,
+    });
+
+    // Trigger transitions on next frame
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        setIncoming((s) => ({ ...s, phase: 'active' }));
+        setOutgoing((o) => o ? { ...o, phase: 'exit' } : null);
+        setDisplay({
+          stage: currentStage,
+          transform: 'translate(-50%, -50%) translateX(0) rotate(0deg)',
+          opacity: 0.07,
+        });
       });
     });
 
-    // Cleanup after transition
     clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      setOutgoing(null);
-      setIncoming({ stage: currentStage, phase: 'idle' });
-    }, 550);
-
+    timeoutRef.current = setTimeout(() => setOutgoing(null), 600);
     return () => clearTimeout(timeoutRef.current);
   }, [currentStage, stageKeys]);
 
-  const colorIdx = parseInt(incoming.stage);
-  const inColor = STAGE_COLORS[colorIdx] || '#60a5fa';
-
-  // Incoming transform — enters from opposite side with subtle rotation
-  let inTransform = 'translate(-50%, -50%) rotate(0deg)';
-  let inOpacity = 0.07;
-  if (incoming.phase === 'enter') {
-    const offset = incoming.direction === 'right' ? '60%' : '-60%';
-    const rot = incoming.direction === 'right' ? '8deg' : '-8deg';
-    inTransform = `translate(-50%, -50%) translateX(${offset}) rotate(${rot})`;
-    inOpacity = 0;
-  }
+  const inColor = STAGE_COLORS[parseInt(display.stage)] || '#60a5fa';
 
   return (
     <>
-      {/* Outgoing number — slides + rotates off */}
       {outgoing && (() => {
-        const outColorIdx = parseInt(outgoing.stage);
-        const outColor = STAGE_COLORS[outColorIdx] || '#60a5fa';
-        const exitX = outgoing.direction === 'right' ? '-60%' : '60%';
-        const exitRot = outgoing.direction === 'right' ? '-8deg' : '8deg';
+        const outColor = STAGE_COLORS[parseInt(outgoing.stage)] || '#60a5fa';
+        const t = outgoing.phase === 'exit' ? outgoing.endTransform : outgoing.startTransform;
+        const o = outgoing.phase === 'exit' ? 0 : 0.07;
         return (
-          <div style={{
-            ...megaNumberStyle,
-            transform: `translate(-50%, -50%) translateX(${exitX}) rotate(${exitRot})`,
-            color: outColor,
-            opacity: 0,
-          }}>
+          <div style={{ ...megaNumberStyle, transform: t, color: outColor, opacity: o }}>
             {outgoing.stage}
           </div>
         );
       })()}
-
-      {/* Incoming / current number */}
       <div style={{
         ...megaNumberStyle,
-        transform: inTransform,
+        transform: display.transform,
         color: inColor,
-        opacity: inOpacity,
+        opacity: display.opacity,
       }}>
-        {incoming.stage}
+        {display.stage}
       </div>
     </>
   );
 }
 
 function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stages }) {
-  const { fitView } = useReactFlow();
+  const { fitView, setViewport: setRFViewport, getViewport } = useReactFlow();
   const nodes = useProjectStore((s) => s.nodes);
   const edges = useProjectStore((s) => s.edges);
   const modules = useProjectStore((s) => s.modules);
@@ -364,16 +359,45 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
     };
   });
 
-  // Animate to stage's nodes on stage change
+  // Gently pan to the centroid of the current stage's nodes (no zoom change)
+  const isFirstRender = useRef(true);
   useEffect(() => {
+    if (isFirstRender.current) {
+      // First render — fit view to show all stage nodes
+      isFirstRender.current = false;
+      const timer = setTimeout(() => {
+        const stageNodes = nodes.filter((n) => n.data.stage === currentStage);
+        if (stageNodes.length > 0) {
+          fitView({ nodes: stageNodes, padding: 0.4, duration: 400 });
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+
     const timer = setTimeout(() => {
       const stageNodes = nodes.filter((n) => n.data.stage === currentStage);
-      if (stageNodes.length > 0) {
-        fitView({ nodes: stageNodes, padding: 0.4, duration: 500 });
-      }
+      if (stageNodes.length === 0) return;
+
+      // Calculate centroid of stage nodes
+      let cx = 0, cy = 0;
+      stageNodes.forEach((n) => { cx += n.position.x; cy += n.position.y; });
+      cx /= stageNodes.length;
+      cy /= stageNodes.length;
+
+      // Get current viewport and wrapper dimensions
+      const vp = getViewport();
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
+      const { width, height } = wrapper.getBoundingClientRect();
+
+      // Pan so centroid is centered, keeping the current zoom
+      const newX = width / 2 - cx * vp.zoom;
+      const newY = height / 2 - cy * vp.zoom;
+
+      setRFViewport({ x: newX, y: newY, zoom: vp.zoom }, { duration: 500 });
     }, 50);
     return () => clearTimeout(timer);
-  }, [currentStage, fitView]);
+  }, [currentStage]);
 
   const onNodeClick = useCallback((event, node) => {
     if (event.shiftKey) {
