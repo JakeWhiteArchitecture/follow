@@ -35,6 +35,7 @@ const useProjectStore = create((set, get) => ({
   },
   nodes: [],
   edges: [],
+  modules: [],
   selectedNode: null,
   highlightedNodes: new Set(),
   highlightedEdges: new Set(),
@@ -115,6 +116,7 @@ const useProjectStore = create((set, get) => ({
       project: json,
       nodes,
       edges,
+      modules: json.modules || [],
       screen: 'canvas',
       readOnly: false,
     });
@@ -157,6 +159,7 @@ const useProjectStore = create((set, get) => ({
       ...project,
       nodes: exportNodes,
       edges: exportEdges,
+      modules: get().modules,
     };
   },
 
@@ -568,6 +571,23 @@ const useProjectStore = create((set, get) => ({
       });
       return { nodes, edges };
     });
+  },
+
+  // Modules
+  addModule: (module) => {
+    set((state) => ({ modules: [...state.modules, module] }));
+  },
+
+  updateModule: (id, patch) => {
+    set((state) => ({
+      modules: state.modules.map((m) => m.id === id ? { ...m, ...patch } : m),
+    }));
+  },
+
+  deleteModule: (id) => {
+    set((state) => ({
+      modules: state.modules.filter((m) => m.id !== id),
+    }));
   },
 
   deleteEdge: (edgeId) => {

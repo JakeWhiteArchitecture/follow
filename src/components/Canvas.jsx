@@ -7,6 +7,7 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import useProjectStore, { RIBA_STAGES } from '../store/useProjectStore';
+import { generateId } from '../utils/id';
 import WorkPackageNode from '../nodes/WorkPackageNode';
 import DecisionNode from '../nodes/DecisionNode';
 import CheckpointNode from '../nodes/CheckpointNode';
@@ -171,33 +172,99 @@ function EdgeChevron({ side, visible, onClick, label }) {
   );
 }
 
+// Approximate node dimensions for bounding box calculation
+const NODE_DIMS = { workPackage: { w: 240, h: 100 }, decision: { w: 210, h: 90 }, checkpoint: { w: 160, h: 72 } };
+
+function ModuleBackgrounds({ modules, nodes, viewport }) {
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
+      {modules.map((mod) => {
+        const memberNodes = mod.members.map((id) => nodeMap.get(id)).filter(Boolean);
+        if (memberNodes.length === 0) return null;
+
+        // Compute bounding rect
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        memberNodes.forEach((n) => {
+          const dims = NODE_DIMS[n.type] || NODE_DIMS.workPackage;
+          minX = Math.min(minX, n.position.x);
+          minY = Math.min(minY, n.position.y);
+          maxX = Math.max(maxX, n.position.x + dims.w);
+          maxY = Math.max(maxY, n.position.y + dims.h);
+        });
+
+        const pad = mod.padding || 40;
+        minX -= pad; minY -= pad; maxX += pad; maxY += pad;
+
+        // Apply viewport transform
+        const left = minX * viewport.zoom + viewport.x;
+        const top = minY * viewport.zoom + viewport.y;
+        const width = (maxX - minX) * viewport.zoom;
+        const height = (maxY - minY) * viewport.zoom;
+
+        return (
+          <div key={mod.id} style={{
+            position: 'absolute',
+            left, top, width, height,
+            background: mod.fill || 'rgba(58,107,82,0.04)',
+            border: `1px solid ${mod.stroke || '#c8c4bc'}`,
+            borderRadius: 6,
+          }}>
+            <span style={{
+              position: 'absolute',
+              top: 4,
+              left: 8,
+              fontSize: 9,
+              fontWeight: 600,
+              color: mod.stroke || '#c8c4bc',
+              opacity: 0.8,
+              whiteSpace: 'nowrap',
+            }}>
+              {mod.label}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stages }) {
-  const { fitView, setViewport: setRFViewport } = useReactFlow();
+  const { fitView } = useReactFlow();
   const nodes = useProjectStore((s) => s.nodes);
   const edges = useProjectStore((s) => s.edges);
+  const modules = useProjectStore((s) => s.modules);
   const onNodesChange = useProjectStore((s) => s.onNodesChange);
   const onEdgesChange = useProjectStore((s) => s.onEdgesChange);
   const onConnect = useProjectStore((s) => s.onConnect);
   const addNode = useProjectStore((s) => s.addNode);
   const addNodeAndConnect = useProjectStore((s) => s.addNodeAndConnect);
+  const addModule = useProjectStore((s) => s.addModule);
   const selectNode = useProjectStore((s) => s.selectNode);
   const deselectNode = useProjectStore((s) => s.deselectNode);
   const readOnly = useProjectStore((s) => s.readOnly);
 
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
+  const [selectedNodeIds, setSelectedNodeIds] = useState(new Set());
   const wrapperRef = useRef(null);
   const connectStartRef = useRef(null);
   const stageKeys = Object.keys(stages).sort((a, b) => parseInt(a) - parseInt(b));
 
-  // All nodes visible — current stage full, others ghosted
+  // All nodes visible — current stage full, others ghosted, shift-selected outlined
   const stageNodeIds = new Set(nodes.filter((n) => n.data.stage === currentStage).map((n) => n.id));
-  const styledNodes = nodes.map((n) => ({
-    ...n,
-    style: stageNodeIds.has(n.id)
-      ? {}
-      : { opacity: 0.15, filter: 'grayscale(0.7)' },
-    zIndex: stageNodeIds.has(n.id) ? 10 : 0,
-  }));
+  const styledNodes = nodes.map((n) => {
+    const inStage = stageNodeIds.has(n.id);
+    const isMultiSelected = selectedNodeIds.has(n.id);
+    return {
+      ...n,
+      style: {
+        ...(inStage ? {} : { opacity: 0.15, filter: 'grayscale(0.7)' }),
+        ...(isMultiSelected ? { outline: '2px solid #f59e0b', outlineOffset: 3, borderRadius: 6 } : {}),
+      },
+      zIndex: isMultiSelected ? 20 : inStage ? 10 : 0,
+    };
+  });
 
   // Animate to stage's nodes on stage change
   useEffect(() => {
@@ -210,8 +277,18 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
     return () => clearTimeout(timer);
   }, [currentStage, fitView]);
 
-  const onNodeClick = useCallback((_, node) => {
-    selectNode(node.id);
+  const onNodeClick = useCallback((event, node) => {
+    if (event.shiftKey) {
+      setSelectedNodeIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(node.id)) next.delete(node.id);
+        else next.add(node.id);
+        return next;
+      });
+    } else {
+      setSelectedNodeIds(new Set());
+      selectNode(node.id);
+    }
   }, [selectNode]);
 
   const onPaneClick = useCallback((event) => {
@@ -227,6 +304,7 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
       setAddMode(null);
     } else {
       deselectNode();
+      setSelectedNodeIds(new Set());
     }
   }, [addMode, readOnly, viewport, currentStage, addNode, deselectNode, setAddMode]);
 
@@ -279,15 +357,18 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
         snapToGrid
         snapGrid={[20, 20]}
         deleteKeyCode={readOnly ? null : 'Backspace'}
-        selectionKeyCode={readOnly ? null : 'Shift'}
-        multiSelectionKeyCode="Shift"
+        selectionKeyCode={null}
+        multiSelectionKeyCode={null}
         nodesDraggable={!readOnly}
         nodesConnectable={!readOnly}
         elementsSelectable
-        style={{ background: '#1a1a2e' }}
+        style={{ background: '#1a1a2e', zIndex: 1 }}
       >
         <Background gap={20} size={1} color="#2a2a3e" />
       </ReactFlow>
+
+      {/* Module background rectangles — behind nodes */}
+      <ModuleBackgrounds modules={modules} nodes={nodes} viewport={viewport} />
 
       {/* Edge chevrons — appear on hover */}
       <EdgeChevron
@@ -302,6 +383,63 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
         label={nextLabel}
         onClick={() => hasNext && setCurrentStage(parseInt(stageKeys[currentIdx + 1]))}
       />
+
+      {/* Convert to Module button */}
+      {selectedNodeIds.size >= 2 && !readOnly && (
+        <div style={{
+          position: 'absolute',
+          bottom: 24,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 20,
+          display: 'flex',
+          gap: 8,
+          alignItems: 'center',
+        }}>
+          <button
+            onClick={() => {
+              const label = prompt('Module label:');
+              if (!label || !label.trim()) return;
+              addModule({
+                id: `m_${generateId()}`,
+                label: label.trim(),
+                members: [...selectedNodeIds],
+                padding: 40,
+                fill: 'rgba(58,107,82,0.04)',
+                stroke: '#c8c4bc',
+              });
+              setSelectedNodeIds(new Set());
+            }}
+            style={{
+              padding: '8px 16px',
+              background: '#f59e0b',
+              color: '#1e1e2e',
+              border: 'none',
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            }}
+          >
+            Group as Module ({selectedNodeIds.size} nodes)
+          </button>
+          <button
+            onClick={() => setSelectedNodeIds(new Set())}
+            style={{
+              padding: '8px 12px',
+              background: '#2a2a3e',
+              color: '#9ca3af',
+              border: '1px solid #3a3a4e',
+              borderRadius: 6,
+              fontSize: 12,
+              cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
     </div>
   );
 }
