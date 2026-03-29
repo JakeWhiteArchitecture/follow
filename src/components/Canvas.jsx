@@ -250,19 +250,27 @@ function AnimatingNumber({ stage, startTransform, startOpacity, endTransform, en
   const [active, setActive] = useState(false);
 
   useEffect(() => {
-    // Force the start position to paint, then transition
     const el = ref.current;
     if (!el) return;
-    // Force reflow so start style is applied
+    // Write the start style directly to avoid React batching
+    el.style.transform = startTransform;
+    el.style.opacity = String(startOpacity);
+    // Force layout
     el.getBoundingClientRect();
-    requestAnimationFrame(() => setActive(true));
+    // Now apply end state — CSS transition will animate
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        el.style.transform = endTransform;
+        el.style.opacity = String(endOpacity);
+      });
+    });
   }, []);
 
   return (
     <div ref={ref} style={{
       ...megaNumberStyle,
-      transform: active ? endTransform : startTransform,
-      opacity: active ? endOpacity : startOpacity,
+      transform: startTransform,
+      opacity: startOpacity,
       color,
     }}>
       {stage}
@@ -379,44 +387,42 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
     };
   });
 
-  // Gently pan to the centroid of the current stage's nodes (no zoom change)
+  // Pan to the centroid of the current stage's nodes (preserve zoom)
   const isFirstRender = useRef(true);
+  const savedZoom = useRef(null);
   useEffect(() => {
     if (isFirstRender.current) {
-      // First render — fit view to show all stage nodes
       isFirstRender.current = false;
       const timer = setTimeout(() => {
         const stageNodes = nodes.filter((n) => n.data.stage === currentStage);
         if (stageNodes.length > 0) {
-          fitView({ nodes: stageNodes, padding: 0.4, duration: 400 });
+          fitView({ nodes: stageNodes, padding: 0.4, duration: 0 });
+          // Remember the zoom level fitView chose
+          setTimeout(() => { savedZoom.current = getViewport().zoom; }, 100);
         }
       }, 50);
       return () => clearTimeout(timer);
     }
 
-    const timer = setTimeout(() => {
-      const stageNodes = nodes.filter((n) => n.data.stage === currentStage);
-      if (stageNodes.length === 0) return;
+    const stageNodes = nodes.filter((n) => n.data.stage === currentStage);
+    if (stageNodes.length === 0) return;
 
-      // Calculate centroid of stage nodes
-      let cx = 0, cy = 0;
-      stageNodes.forEach((n) => { cx += n.position.x; cy += n.position.y; });
-      cx /= stageNodes.length;
-      cy /= stageNodes.length;
+    // Calculate centroid of stage nodes
+    let cx = 0, cy = 0;
+    stageNodes.forEach((n) => { cx += n.position.x; cy += n.position.y; });
+    cx /= stageNodes.length;
+    cy /= stageNodes.length;
 
-      // Get current viewport and wrapper dimensions
-      const vp = getViewport();
-      const wrapper = wrapperRef.current;
-      if (!wrapper) return;
-      const { width, height } = wrapper.getBoundingClientRect();
+    // Use saved zoom or current zoom
+    const zoom = savedZoom.current || getViewport().zoom;
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const { width, height } = wrapper.getBoundingClientRect();
 
-      // Pan so centroid is centered, keeping the current zoom
-      const newX = width / 2 - cx * vp.zoom;
-      const newY = height / 2 - cy * vp.zoom;
-
-      setRFViewport({ x: newX, y: newY, zoom: vp.zoom }, { duration: 500 });
-    }, 50);
-    return () => clearTimeout(timer);
+    // Pan so centroid is centered — instant, no duration (mega number provides visual continuity)
+    const newX = width / 2 - cx * zoom;
+    const newY = height / 2 - cy * zoom;
+    setRFViewport({ x: newX, y: newY, zoom }, { duration: 0 });
   }, [currentStage]);
 
   const onNodeClick = useCallback((event, node) => {
