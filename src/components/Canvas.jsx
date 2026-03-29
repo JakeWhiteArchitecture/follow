@@ -380,7 +380,8 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
     return {
       ...n,
       style: {
-        ...(inStage ? {} : { opacity: 0.15, filter: 'grayscale(0.7)' }),
+        transition: 'opacity 500ms ease, filter 500ms ease',
+        ...(inStage ? { opacity: 1, filter: 'none' } : { opacity: 0.15, filter: 'grayscale(0.7)' }),
         ...(isMultiSelected ? { outline: '2px solid #f59e0b', outlineOffset: 3, borderRadius: 6 } : {}),
       },
       zIndex: isMultiSelected ? 20 : inStage ? 10 : 0,
