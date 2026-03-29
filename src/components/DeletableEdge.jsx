@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -7,7 +7,6 @@ import {
 import useProjectStore from '../store/useProjectStore';
 
 const FAN_SPREAD = 10;
-const ROUTE_SPREAD = 30; // vertical segment offset for parallel routes
 
 export default function DeletableEdge({
   id,
@@ -25,23 +24,27 @@ export default function DeletableEdge({
   markerEnd,
 }) {
   const [hovered, setHovered] = useState(false);
+  const [handleHovered, setHandleHovered] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const dragStartRef = useRef(null);
   const readOnly = useProjectStore((s) => s.readOnly);
   const deleteEdge = useProjectStore((s) => s.deleteEdge);
+  const setEdgeOffset = useProjectStore((s) => s.setEdgeOffset);
   const highlighted = useProjectStore((s) => s.highlightedEdges.has(id));
   const edges = useProjectStore((s) => s.edges);
+  const edgeOffset = useProjectStore((s) => s.edgeOffsets[id] || 0);
   const currentStage = useProjectStore((s) => s.currentStage);
   const nodes = useProjectStore((s) => s.nodes);
 
-  // Determine if source/target are in the current stage
+  // Stage focus
   const sourceNode = useMemo(() => nodes.find((n) => n.id === source), [nodes, source]);
   const targetNode = useMemo(() => nodes.find((n) => n.id === target), [nodes, target]);
   const srcInStage = sourceNode?.data?.stage === currentStage;
   const tgtInStage = targetNode?.data?.stage === currentStage;
-  const bothInStage = srcInStage && tgtInStage;
   const neitherInStage = !srcInStage && !tgtInStage;
   const isCrossStage = (srcInStage && !tgtInStage) || (!srcInStage && tgtInStage);
 
-  // Compute vertical offset for edges sharing the same source or target handle
+  // Pin fan offset for shared handles
   const { srcOffset, tgtOffset } = useMemo(() => {
     const srcSiblings = edges.filter(
       (e) => e.source === source && e.sourceHandle === sourceHandleId
@@ -60,17 +63,6 @@ export default function DeletableEdge({
     return { srcOffset: srcOff, tgtOffset: tgtOff };
   }, [edges, id, source, sourceHandleId, target, targetHandleId]);
 
-  // Offset the vertical segment for edges that would overlap
-  // Group edges that share a source node OR target node — their vertical
-  // segments tend to land at similar X positions
-  const routeOffset = useMemo(() => {
-    // Find all edges leaving the same source node (any handle)
-    const fromSameSource = edges.filter((e) => e.source === source);
-    if (fromSameSource.length <= 1) return 0;
-    const idx = fromSameSource.findIndex((e) => e.id === id);
-    return (idx - (fromSameSource.length - 1) / 2) * ROUTE_SPREAD;
-  }, [edges, id, source]);
-
   const adjustedSourceY = sourceY + srcOffset;
   const adjustedTargetY = targetY + tgtOffset;
 
@@ -82,12 +74,35 @@ export default function DeletableEdge({
     sourcePosition,
     targetPosition,
     borderRadius: 8,
-    offset: routeOffset,
+    offset: edgeOffset,
   });
 
-  const isGlowing = highlighted && !hovered;
+  // Drag the midpoint handle to adjust offset
+  const onHandleMouseDown = useCallback((e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setDragging(true);
+    dragStartRef.current = { x: e.clientX, startOffset: edgeOffset };
 
-  // Determine stroke colour and opacity based on stage focus
+    const onMouseMove = (me) => {
+      const dx = me.clientX - dragStartRef.current.x;
+      // Get the current zoom from the React Flow viewport transform
+      const wrapper = e.target.closest('.react-flow');
+      const zoom = wrapper ? parseFloat(wrapper.querySelector('.react-flow__viewport')?.style?.transform?.match(/scale\(([^)]+)\)/)?.[1] || 1) : 1;
+      setEdgeOffset(id, dragStartRef.current.startOffset + dx / zoom);
+    };
+
+    const onMouseUp = () => {
+      setDragging(false);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  }, [id, edgeOffset, setEdgeOffset]);
+
+  const isGlowing = highlighted && !hovered;
   let baseStroke = style.stroke || '#38bdf8';
   let edgeOpacity = 1;
 
@@ -100,9 +115,9 @@ export default function DeletableEdge({
   const strokeColor = hovered ? '#f87171' : isGlowing ? '#60a5fa' : baseStroke;
   const strokeW = hovered ? 3 : isGlowing ? 3 : (style.strokeWidth || 2);
 
-  // Unique gradient ID for cross-stage fade
   const gradientId = `edge-grad-${id}`;
   const needsGradient = isCrossStage && !hovered && !isGlowing;
+  const showHandle = (hovered || handleHovered || dragging) && !readOnly && !neitherInStage;
 
   return (
     <>
@@ -131,14 +146,14 @@ export default function DeletableEdge({
           </linearGradient>
         </defs>
       )}
-      {/* Invisible wider path for easier hover target */}
+      {/* Invisible wider path for hover */}
       <path
         d={edgePath}
         fill="none"
         stroke="transparent"
         strokeWidth={20}
         onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        onMouseLeave={() => { if (!dragging) setHovered(false); }}
         style={{ cursor: 'pointer' }}
       />
       <BaseEdge
@@ -153,8 +168,32 @@ export default function DeletableEdge({
           transition: 'opacity 500ms ease, stroke 0.15s, stroke-width 0.15s',
         }}
       />
-      {hovered && !readOnly && (
-        <EdgeLabelRenderer>
+      {/* Midpoint controls: drag handle + delete button */}
+      <EdgeLabelRenderer>
+        {/* Draggable midpoint handle — always shows on hover */}
+        {showHandle && (
+          <div
+            onMouseDown={onHandleMouseDown}
+            onMouseEnter={() => setHandleHovered(true)}
+            onMouseLeave={() => { if (!dragging) setHandleHovered(false); }}
+            style={{
+              position: 'absolute',
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+              pointerEvents: 'all',
+              width: 12,
+              height: 12,
+              borderRadius: '50%',
+              background: dragging ? '#60a5fa' : '#3a3a4e',
+              border: '2px solid #60a5fa',
+              cursor: 'ew-resize',
+              zIndex: 5,
+              transition: 'background 0.15s',
+            }}
+            title="Drag to offset edge"
+          />
+        )}
+        {/* Delete button — offset above the drag handle */}
+        {hovered && !readOnly && (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -164,16 +203,16 @@ export default function DeletableEdge({
             onMouseLeave={() => setHovered(false)}
             style={{
               position: 'absolute',
-              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY - 18}px)`,
               pointerEvents: 'all',
-              width: 20,
-              height: 20,
+              width: 16,
+              height: 16,
               borderRadius: '50%',
               background: '#ef4444',
               color: '#fff',
               border: '2px solid #23272f',
-              fontSize: 12,
-              lineHeight: '14px',
+              fontSize: 10,
+              lineHeight: '10px',
               textAlign: 'center',
               cursor: 'pointer',
               padding: 0,
@@ -187,8 +226,8 @@ export default function DeletableEdge({
           >
             ×
           </button>
-        </EdgeLabelRenderer>
-      )}
+        )}
+      </EdgeLabelRenderer>
     </>
   );
 }

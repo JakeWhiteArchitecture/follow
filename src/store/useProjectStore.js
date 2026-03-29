@@ -36,6 +36,7 @@ const useProjectStore = create((set, get) => ({
   nodes: [],
   edges: [],
   modules: [],
+  edgeOffsets: {},  // { [edgeId]: number } — manual midpoint offset per edge
   selectedNode: null,
   highlightedNodes: new Set(),
   highlightedEdges: new Set(),
@@ -119,6 +120,7 @@ const useProjectStore = create((set, get) => ({
       nodes,
       edges,
       modules: json.modules || [],
+      edgeOffsets: json.edgeOffsets || {},
       screen: 'canvas',
       readOnly: false,
       projectVersion: state.projectVersion + 1,
@@ -163,6 +165,7 @@ const useProjectStore = create((set, get) => ({
       nodes: exportNodes,
       edges: exportEdges,
       modules: get().modules,
+      edgeOffsets: get().edgeOffsets,
     };
   },
 
@@ -574,6 +577,13 @@ const useProjectStore = create((set, get) => ({
       });
       return { nodes, edges };
     });
+  },
+
+  // Edge offsets
+  setEdgeOffset: (edgeId, offset) => {
+    set((state) => ({
+      edgeOffsets: { ...state.edgeOffsets, [edgeId]: offset },
+    }));
   },
 
   // Modules
