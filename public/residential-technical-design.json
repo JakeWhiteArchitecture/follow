@@ -649,6 +649,48 @@
       ]
     },
     {
+      "id": "n16d",
+      "label": "Contamination Assessment required?",
+      "type": "decision",
+      "stage": 2,
+      "role": "c04",
+      "status": "pending",
+      "position": {
+        "x": 600,
+        "y": 410
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "gd16d",
+          "inputLabel": "Input",
+          "outputs": [
+            {
+              "id": "od16d1",
+              "label": "Yes - Full"
+            },
+            {
+              "id": "od16d2",
+              "label": "Partial"
+            },
+            {
+              "id": "od16d3",
+              "label": "No"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
       "id": "n16",
       "label": "Contamination Assessment",
       "type": "work_package",
@@ -656,7 +698,7 @@
       "role": "c04",
       "status": "pending",
       "position": {
-        "x": 680,
+        "x": 780,
         "y": 390
       },
       "notes": "",
@@ -1896,7 +1938,7 @@
     {
       "id": "e06",
       "source": "n07",
-      "source_handle": "output-gd904-od905",
+      "source_handle": "output-gd904-od906",
       "target": "n08",
       "target_handle": "input-g08"
     },
@@ -1946,8 +1988,8 @@
       "id": "e13",
       "source": "n15",
       "source_handle": "output-g15-o15a",
-      "target": "n16",
-      "target_handle": "input-g16"
+      "target": "n16d",
+      "target_handle": "input"
     },
     {
       "id": "e14",
@@ -2235,6 +2277,27 @@
       "source_handle": "output",
       "target": "n50",
       "target_handle": "input"
+    },
+    {
+      "id": "e13a",
+      "source": "n16d",
+      "source_handle": "output-gd16d-od16d1",
+      "target": "n16",
+      "target_handle": "input-g16"
+    },
+    {
+      "id": "e13b",
+      "source": "n16d",
+      "source_handle": "output-gd16d-od16d2",
+      "target": "n17",
+      "target_handle": "input-g17"
+    },
+    {
+      "id": "e13c",
+      "source": "n16d",
+      "source_handle": "output-gd16d-od16d3",
+      "target": "n18",
+      "target_handle": "input-g18"
     }
   ],
   "canvas": {
