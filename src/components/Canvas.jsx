@@ -240,8 +240,10 @@ const megaNumberStyle = {
   pointerEvents: 'none',
   userSelect: 'none',
   zIndex: 0,
-  transition: 'transform 500ms cubic-bezier(0.4, 0, 0.2, 1), opacity 500ms ease',
+  transition: 'transform 600ms cubic-bezier(0.4, 0, 0.2, 1), opacity 600ms ease',
   fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  transformStyle: 'preserve-3d',
+  backfaceVisibility: 'hidden',
 };
 
 // Individual animating number — mounts at startTransform, transitions to endTransform
@@ -301,32 +303,45 @@ function MegaStageNumber({ currentStage, stageKeys }) {
     return () => clearTimeout(timeoutRef.current);
   }, [currentStage, stageKeys]);
 
-  const center = 'translate(-50%, -50%) translateX(0) rotate(0deg)';
+  const center = 'translate(-50%, -50%) rotateY(0deg)';
+
+  // Wrap everything in a perspective container
+  const perspectiveWrap = (children) => (
+    <div style={{
+      position: 'absolute',
+      inset: 0,
+      perspective: '1200px',
+      perspectiveOrigin: '50% 50%',
+      pointerEvents: 'none',
+      zIndex: 0,
+    }}>
+      {children}
+    </div>
+  );
 
   if (anim) {
     const { prevStage, nextStage, dir } = anim;
-    const exitX = dir === 'right' ? '-50%' : '50%';
-    const exitRot = dir === 'right' ? '-6deg' : '6deg';
-    const enterX = dir === 'right' ? '50%' : '-50%';
-    const enterRot = dir === 'right' ? '6deg' : '-6deg';
+    // Barrel rotation: going right, old number rotates away to the left (negative Y)
+    const exitRotY = dir === 'right' ? '-70deg' : '70deg';
+    const enterRotY = dir === 'right' ? '70deg' : '-70deg';
     const prevColor = STAGE_COLORS[parseInt(prevStage)] || '#60a5fa';
     const nextColor = STAGE_COLORS[parseInt(nextStage)] || '#60a5fa';
 
-    return (
+    return perspectiveWrap(
       <>
         <AnimatingNumber
           key={`out-${animKey}`}
           stage={prevStage}
           startTransform={center}
           startOpacity={0.12}
-          endTransform={`translate(-50%, -50%) translateX(${exitX}) rotate(${exitRot})`}
+          endTransform={`translate(-50%, -50%) rotateY(${exitRotY})`}
           endOpacity={0}
           color={prevColor}
         />
         <AnimatingNumber
           key={`in-${animKey}`}
           stage={nextStage}
-          startTransform={`translate(-50%, -50%) translateX(${enterX}) rotate(${enterRot})`}
+          startTransform={`translate(-50%, -50%) rotateY(${enterRotY})`}
           startOpacity={0}
           endTransform={center}
           endOpacity={0.15}
@@ -336,9 +351,8 @@ function MegaStageNumber({ currentStage, stageKeys }) {
     );
   }
 
-  // Idle state — slightly lower opacity than the animated arrival
   const idleColor = STAGE_COLORS[parseInt(currentStage)] || '#60a5fa';
-  return (
+  return perspectiveWrap(
     <div style={{
       ...megaNumberStyle,
       transform: center,
