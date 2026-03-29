@@ -162,20 +162,9 @@ const useProjectStore = create((set, get) => ({
 
   // Canvas actions
   onNodesChange: (changes) => {
-    set((state) => {
-      const newNodes = applyNodeChanges(changes, state.nodes);
-      const { project } = state;
-      const stageColumns = getStageColumns(project.project.stages);
-      for (const node of newNodes) {
-        if (node.position) {
-          const stage = getStageForPosition(node.position.x, stageColumns);
-          if (stage !== null && node.data.stage !== stage) {
-            node.data = { ...node.data, stage };
-          }
-        }
-      }
-      return { nodes: newNodes };
-    });
+    set((state) => ({
+      nodes: applyNodeChanges(changes, state.nodes),
+    }));
   },
 
   onEdgesChange: (changes) => {

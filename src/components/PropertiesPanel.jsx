@@ -180,10 +180,12 @@ export default function PropertiesPanel() {
         onChange={(e) => update('target_date', e.target.value || null)} disabled={readOnly} />
 
       <label style={labelStyle}>Stage</label>
-      <div style={{ ...inputStyle, background: '#2a2a3e', color: '#6b7280', border: '1px solid #3a3a4e' }}>
-        {data.stage !== undefined ? `Stage ${data.stage}` : 'Unknown'}
-        <span style={{ fontSize: 10, marginLeft: 8 }}>(drag node to change)</span>
-      </div>
+      <select style={selectStyle} value={data.stage ?? ''}
+        onChange={(e) => update('stage', parseInt(e.target.value))} disabled={readOnly}>
+        {[0,1,2,3,4,5,6,7].map((s) => (
+          <option key={s} value={s}>Stage {s}</option>
+        ))}
+      </select>
 
       {!readOnly && (
         <button onClick={handleDelete} style={{
