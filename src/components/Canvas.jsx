@@ -387,9 +387,10 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
     };
   });
 
-  // Pan to the centroid of the current stage's nodes (preserve zoom)
+  // Smooth pan to the centroid of the current stage's nodes (preserve zoom)
   const isFirstRender = useRef(true);
   const savedZoom = useRef(null);
+  const panAnimRef = useRef(null);
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
@@ -397,7 +398,6 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
         const stageNodes = nodes.filter((n) => n.data.stage === currentStage);
         if (stageNodes.length > 0) {
           fitView({ nodes: stageNodes, padding: 0.4, duration: 0 });
-          // Remember the zoom level fitView chose
           setTimeout(() => { savedZoom.current = getViewport().zoom; }, 100);
         }
       }, 50);
@@ -407,22 +407,40 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
     const stageNodes = nodes.filter((n) => n.data.stage === currentStage);
     if (stageNodes.length === 0) return;
 
-    // Calculate centroid of stage nodes
     let cx = 0, cy = 0;
     stageNodes.forEach((n) => { cx += n.position.x; cy += n.position.y; });
     cx /= stageNodes.length;
     cy /= stageNodes.length;
 
-    // Use saved zoom or current zoom
     const zoom = savedZoom.current || getViewport().zoom;
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
     const { width, height } = wrapper.getBoundingClientRect();
 
-    // Pan so centroid is centered — instant, no duration (mega number provides visual continuity)
-    const newX = width / 2 - cx * zoom;
-    const newY = height / 2 - cy * zoom;
-    setRFViewport({ x: newX, y: newY, zoom }, { duration: 0 });
+    const targetX = width / 2 - cx * zoom;
+    const targetY = height / 2 - cy * zoom;
+
+    // Animate pan manually with ease-out curve
+    const startVp = getViewport();
+    const startX = startVp.x;
+    const startY = startVp.y;
+    const duration = 600;
+    const startTime = performance.now();
+
+    cancelAnimationFrame(panAnimRef.current);
+    const animate = (now) => {
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      // Ease-out cubic: decelerating curve
+      const ease = 1 - Math.pow(1 - t, 3);
+      const x = startX + (targetX - startX) * ease;
+      const y = startY + (targetY - startY) * ease;
+      setRFViewport({ x, y, zoom }, { duration: 0 });
+      if (t < 1) panAnimRef.current = requestAnimationFrame(animate);
+    };
+    panAnimRef.current = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(panAnimRef.current);
   }, [currentStage]);
 
   const onNodeClick = useCallback((event, node) => {
