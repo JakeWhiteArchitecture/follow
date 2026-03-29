@@ -417,11 +417,10 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
     if (!wrapper) return;
     const { width, height } = wrapper.getBoundingClientRect();
 
-    const targetX = width / 2 - cx * zoom;
-    const targetY = height / 2 - cy * zoom;
-
-    // Animate pan manually with ease-out curve
+    // Animate pan manually with ease-out curve — horizontal only
     const startVp = getViewport();
+    const targetX = width / 2 - cx * zoom;
+    const targetY = startVp.y; // preserve Y position
     const startX = startVp.x;
     const startY = startVp.y;
     const duration = 600;
