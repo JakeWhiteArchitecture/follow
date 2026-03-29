@@ -646,7 +646,6 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
-        fitView
         snapToGrid
         snapGrid={[20, 20]}
         deleteKeyCode={readOnly ? null : 'Backspace'}
