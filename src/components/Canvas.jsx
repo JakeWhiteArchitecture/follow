@@ -318,7 +318,7 @@ function MegaStageNumber({ currentStage, stageKeys }) {
           key={`out-${animKey}`}
           stage={prevStage}
           startTransform={center}
-          startOpacity={0.07}
+          startOpacity={0.12}
           endTransform={`translate(-50%, -50%) translateX(${exitX}) rotate(${exitRot})`}
           endOpacity={0}
           color={prevColor}
@@ -329,21 +329,21 @@ function MegaStageNumber({ currentStage, stageKeys }) {
           startTransform={`translate(-50%, -50%) translateX(${enterX}) rotate(${enterRot})`}
           startOpacity={0}
           endTransform={center}
-          endOpacity={0.07}
+          endOpacity={0.15}
           color={nextColor}
         />
       </>
     );
   }
 
-  // Idle state
+  // Idle state — slightly lower opacity than the animated arrival
   const idleColor = STAGE_COLORS[parseInt(currentStage)] || '#60a5fa';
   return (
     <div style={{
       ...megaNumberStyle,
       transform: center,
       color: idleColor,
-      opacity: 0.07,
+      opacity: 0.1,
     }}>
       {currentStage}
     </div>
