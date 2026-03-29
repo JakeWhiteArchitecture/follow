@@ -12,7 +12,7 @@ import WorkPackageNode from '../nodes/WorkPackageNode';
 import DecisionNode from '../nodes/DecisionNode';
 import CheckpointNode from '../nodes/CheckpointNode';
 import Toolbar from './Toolbar';
-import PropertiesPanel from './PropertiesPanel';
+import PropertiesPanel, { pendingModuleRef } from './PropertiesPanel';
 import DeletableEdge from './DeletableEdge';
 import { STAGE_COLORS } from '../utils/colors';
 
@@ -336,6 +336,7 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
   const addNode = useProjectStore((s) => s.addNode);
   const addNodeAndConnect = useProjectStore((s) => s.addNodeAndConnect);
   const addModule = useProjectStore((s) => s.addModule);
+  const importModuleNodes = useProjectStore((s) => s.importModuleNodes);
   const selectNode = useProjectStore((s) => s.selectNode);
   const deselectNode = useProjectStore((s) => s.deselectNode);
   const readOnly = useProjectStore((s) => s.readOnly);
@@ -425,6 +426,152 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
     addNodeAndConnect('work_package', position, currentStage, name.trim(), startParams);
   }, [readOnly, viewport, currentStage, addNodeAndConnect]);
 
+  // Module drop handlers
+  const onDragOver = useCallback((e) => {
+    if (e.dataTransfer.types.includes('application/follow-module')) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    }
+  }, []);
+
+  const onDrop = useCallback((e) => {
+    if (!e.dataTransfer.types.includes('application/follow-module')) return;
+    e.preventDefault();
+    const mod = pendingModuleRef.current;
+    if (!mod) return;
+    pendingModuleRef.current = null;
+
+    const bounds = wrapperRef.current.getBoundingClientRect();
+    const dropX = (e.clientX - bounds.left - viewport.x) / viewport.zoom;
+    const dropY = (e.clientY - bounds.top - viewport.y) / viewport.zoom;
+
+    // Layout: BFS depth assignment
+    const CELL_W = 300, CELL_H = 140;
+    const adj = new Map();
+    mod.nodes.forEach((n) => adj.set(n.id, []));
+    mod.edges.forEach((edge) => {
+      if (adj.has(edge.source)) adj.get(edge.source).push(edge.target);
+    });
+
+    const depths = new Map();
+    const entryId = mod.entry_node || mod.nodes[0]?.id;
+    if (entryId) {
+      const queue = [entryId];
+      depths.set(entryId, 0);
+      while (queue.length) {
+        const cur = queue.shift();
+        for (const next of (adj.get(cur) || [])) {
+          if (!depths.has(next)) {
+            depths.set(next, depths.get(cur) + 1);
+            queue.push(next);
+          }
+        }
+      }
+    }
+    const maxD = Math.max(0, ...depths.values());
+    mod.nodes.forEach((n) => { if (!depths.has(n.id)) depths.set(n.id, maxD + 1); });
+
+    // Group by depth, assign row
+    const columns = {};
+    mod.nodes.forEach((n) => {
+      const d = depths.get(n.id) || 0;
+      if (!columns[d]) columns[d] = [];
+      columns[d].push(n);
+    });
+
+    const isVert = mod.layout_direction === 'vertical';
+    const positions = new Map();
+    mod.nodes.forEach((n) => {
+      const d = depths.get(n.id) || 0;
+      const row = columns[d].indexOf(n);
+      positions.set(n.id, {
+        x: dropX + (isVert ? row * CELL_W : d * CELL_W),
+        y: dropY + (isVert ? d * CELL_H : row * CELL_H),
+      });
+    });
+
+    // Build ID mapping and nodes
+    const idMap = new Map();
+    mod.nodes.forEach((n) => { idMap.set(n.id, `node_${generateId()}`); });
+
+    const buildGroups = (n) => {
+      if (n.type === 'checkpoint') return [];
+      if (n.type === 'decision') {
+        const outputs = (n.outputs || ['Yes', 'No']).map((lbl) => ({ id: `o_${generateId()}`, label: lbl }));
+        return [{ id: `g_${generateId()}`, inputLabel: 'Input', outputs }];
+      }
+      // work_package
+      const inputLabel = n.inputs?.[0] || 'Input';
+      const outputs = (n.outputs || [n.label]).map((lbl) => ({ id: `o_${generateId()}`, label: lbl }));
+      return [{ id: `g_${generateId()}`, inputLabel, outputs }];
+    };
+
+    const rfType = (t) => t === 'decision' ? 'decision' : t === 'checkpoint' ? 'checkpoint' : 'workPackage';
+
+    const newNodes = mod.nodes.map((n) => ({
+      id: idMap.get(n.id),
+      type: rfType(n.type),
+      position: positions.get(n.id),
+      data: {
+        label: n.label,
+        nodeType: n.type || 'work_package',
+        stage: mod.stage,
+        role: n.role || null,
+        status: 'pending',
+        notes: '',
+        target_date: null,
+        linked_docs: [],
+        typical_inputs: [],
+        groups: buildGroups(n),
+        history: [{ event: 'created', timestamp: new Date().toISOString() }],
+      },
+    }));
+
+    // Build edges — connect first output of source to first input of target
+    const newEdges = mod.edges.map((edge) => {
+      const srcId = idMap.get(edge.source);
+      const tgtId = idMap.get(edge.target);
+      const srcNode = newNodes.find((n) => n.id === srcId);
+      const tgtNode = newNodes.find((n) => n.id === tgtId);
+
+      let sourceHandle = 'output';
+      let targetHandle = 'input';
+      if (srcNode?.data.groups?.length) {
+        const g = srcNode.data.groups[0];
+        sourceHandle = `output-${g.id}-${g.outputs[0]?.id}`;
+      }
+      if (tgtNode?.data.groups?.length) {
+        const g = tgtNode.data.groups[0];
+        targetHandle = `input-${g.id}`;
+      }
+
+      return {
+        id: `edge_${generateId()}`,
+        source: srcId,
+        sourceHandle,
+        target: tgtId,
+        targetHandle,
+        type: 'deletable',
+      };
+    });
+
+    const moduleRecord = {
+      id: `m_${generateId()}`,
+      label: mod.label,
+      members: newNodes.map((n) => n.id),
+      padding: 40,
+      fill: 'rgba(58,107,82,0.04)',
+      stroke: '#c8c4bc',
+    };
+
+    importModuleNodes(newNodes, newEdges, moduleRecord);
+
+    // Switch to the module's stage
+    if (mod.stage !== currentStage) {
+      setCurrentStage(mod.stage);
+    }
+  }, [viewport, currentStage, setCurrentStage, importModuleNodes]);
+
   // Chevron navigation
   const currentIdx = stageKeys.indexOf(String(currentStage));
   const hasPrev = currentIdx > 0;
@@ -447,6 +594,8 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
         onConnectEnd={readOnly ? undefined : onConnectEnd}
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
+        onDragOver={onDragOver}
+        onDrop={onDrop}
         onViewportChange={setViewport}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
@@ -546,6 +695,7 @@ export default function Canvas() {
   const stages = useProjectStore((s) => s.project.project.stages);
   const selectedNode = useProjectStore((s) => s.selectedNode);
   const deselectNode = useProjectStore((s) => s.deselectNode);
+  const readOnly = useProjectStore((s) => s.readOnly);
 
   const stageKeys = Object.keys(stages).sort((a, b) => parseInt(a) - parseInt(b));
   const firstAppt = stageKeys.find((k) => stages[k]?.in_appointment) || stageKeys[0] || '0';
@@ -585,7 +735,7 @@ export default function Canvas() {
         position: 'absolute',
         top: 76, // 44 toolbar + 32 nav
         left: 0,
-        right: selectedNode ? 300 : 0,
+        right: (selectedNode || !readOnly) ? 300 : 0,
         bottom: 0,
         transition: 'right 0.2s ease',
       }}>

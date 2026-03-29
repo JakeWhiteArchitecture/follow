@@ -578,6 +578,16 @@ const useProjectStore = create((set, get) => ({
     set((state) => ({ modules: [...state.modules, module] }));
   },
 
+  importModuleNodes: (newNodes, newEdges, module) => {
+    set((state) => {
+      const nodes = [...state.nodes, ...newNodes];
+      const edges = [...state.edges, ...newEdges];
+      const modules = [...state.modules, module];
+      const propagated = propagateStatuses(nodes, edges);
+      return { nodes: propagated, edges, modules };
+    });
+  },
+
   updateModule: (id, patch) => {
     set((state) => ({
       modules: state.modules.map((m) => m.id === id ? { ...m, ...patch } : m),
