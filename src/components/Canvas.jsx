@@ -9,7 +9,7 @@ import '@xyflow/react/dist/style.css';
 
 import useProjectStore, { getStageColumns, getStageForPosition } from '../store/useProjectStore';
 import WorkPackageNode from '../nodes/WorkPackageNode';
-import MilestoneNode from '../nodes/MilestoneNode';
+import DecisionNode from '../nodes/DecisionNode';
 import CheckpointNode from '../nodes/CheckpointNode';
 import Toolbar from './Toolbar';
 import PropertiesPanel from './PropertiesPanel';
@@ -19,8 +19,7 @@ import { STAGE_COLORS } from '../utils/colors';
 
 const nodeTypes = {
   workPackage: WorkPackageNode,
-  infoRequest: WorkPackageNode,
-  milestone: MilestoneNode,
+  decision: DecisionNode,
   checkpoint: CheckpointNode,
 };
 

@@ -163,7 +163,7 @@
     {
       "id": "node_006",
       "label": "Client Sign-Off",
-      "type": "user_checkpoint",
+      "type": "checkpoint",
       "stage": 2,
       "role": "c04",
       "status": "pending",
@@ -218,7 +218,7 @@
     {
       "id": "node_008",
       "label": "Planning Submission",
-      "type": "milestone",
+      "type": "checkpoint",
       "stage": 3,
       "role": "c01",
       "status": "pending",

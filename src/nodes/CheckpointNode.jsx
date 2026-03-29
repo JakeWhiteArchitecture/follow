@@ -1,18 +1,66 @@
-import React from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { STATUS_COLORS } from '../utils/colors';
 import useProjectStore from '../store/useProjectStore';
 
 const PIN_SIZE = 10;
 
+function InlineEdit({ value, onChange, style, inputStyle: extraInputStyle }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const inputRef = useRef(null);
+
+  const startEdit = useCallback((e) => {
+    e.stopPropagation();
+    setDraft(value);
+    setEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }, [value]);
+
+  const commit = useCallback(() => {
+    setEditing(false);
+    if (draft.trim() && draft !== value) onChange(draft.trim());
+  }, [draft, value, onChange]);
+
+  const onKeyDown = useCallback((e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') commit();
+    if (e.key === 'Escape') setEditing(false);
+  }, [commit]);
+
+  if (editing) {
+    return (
+      <input ref={inputRef} value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit} onKeyDown={onKeyDown}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#2d2d3d', border: '1px solid #3b82f6', borderRadius: 2,
+          color: '#e5e7eb', outline: 'none', padding: '0 3px',
+          width: '100%', ...style, ...extraInputStyle,
+        }}
+      />
+    );
+  }
+
+  return (
+    <span onDoubleClick={startEdit} style={{ cursor: 'text', ...style }} title="Double-click to edit">
+      {value}
+    </span>
+  );
+}
+
 export default function CheckpointNode({ id, data, selected }) {
   const colors = STATUS_COLORS[data.status] || STATUS_COLORS.pending;
   const highlighted = useProjectStore((s) => s.highlightedNodes.has(id));
   const selectedNode = useProjectStore((s) => s.selectedNode);
+  const updateNodeData = useProjectStore((s) => s.updateNodeData);
+  const readOnly = useProjectStore((s) => s.readOnly);
   const isChainGlow = highlighted && selectedNode !== id;
 
   return (
-    <div style={{ position: 'relative', width: 160, height: 72 }}>
+    <div style={{ position: 'relative', width: 160, height: 72, cursor: 'grab' }}>
       <Handle type="target" position={Position.Left} id="input"
         style={{
           background: colors.border, width: PIN_SIZE, height: PIN_SIZE,
@@ -34,16 +82,24 @@ export default function CheckpointNode({ id, data, selected }) {
           ? '0 0 12px rgba(96,165,250,0.4), 0 4px 16px rgba(0,0,0,0.5)'
           : '0 4px 16px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.3)',
       }}>
-        <span style={{
+        <div style={{
           fontSize: 10,
           fontWeight: 700,
           color: colors.border,
           textAlign: 'center',
           padding: '0 28px',
           lineHeight: 1.2,
+          wordBreak: 'break-word',
         }}>
-          {data.label}
-        </span>
+          {readOnly ? data.label : (
+            <InlineEdit
+              value={data.label}
+              onChange={(val) => updateNodeData(id, { label: val })}
+              style={{ fontSize: 10, fontWeight: 700, color: colors.border }}
+              inputStyle={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff' }}
+            />
+          )}
+        </div>
         <span style={{
           fontSize: 8,
           color: '#6b7280',

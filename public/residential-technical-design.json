@@ -1,0 +1,2245 @@
+{
+  "follow_version": "0.1",
+  "project": {
+    "name": "Residential Technical Design — Pre-Construction",
+    "client": null,
+    "address": null,
+    "created": "2026-03-28",
+    "stages": {
+      "0": {
+        "active": true,
+        "in_appointment": false,
+        "width": 200
+      },
+      "1": {
+        "active": true,
+        "in_appointment": false,
+        "width": 200
+      },
+      "2": {
+        "active": true,
+        "in_appointment": true,
+        "width": 800
+      },
+      "3": {
+        "active": true,
+        "in_appointment": true,
+        "width": 800
+      },
+      "4": {
+        "active": true,
+        "in_appointment": true,
+        "width": 800
+      },
+      "5": {
+        "active": true,
+        "in_appointment": true,
+        "width": 800
+      },
+      "6": {
+        "active": true,
+        "in_appointment": false,
+        "width": 200
+      },
+      "7": {
+        "active": true,
+        "in_appointment": false,
+        "width": 200
+      }
+    },
+    "contacts": [
+      {
+        "id": "c01",
+        "name": "Jake White",
+        "org": "Jake White Architecture",
+        "discipline": "Architect / Lead Designer"
+      },
+      {
+        "id": "c02",
+        "name": null,
+        "org": null,
+        "discipline": "Structural Engineer",
+        "unassigned": true
+      },
+      {
+        "id": "c03",
+        "name": "Firm Energy",
+        "org": "Firm Energy",
+        "discipline": "Energy Consultant"
+      },
+      {
+        "id": "c04",
+        "name": null,
+        "org": null,
+        "discipline": "SI Consultant",
+        "unassigned": true
+      },
+      {
+        "id": "c05",
+        "name": null,
+        "org": null,
+        "discipline": "Arborist",
+        "unassigned": true
+      },
+      {
+        "id": "c06",
+        "name": "Total BC",
+        "org": "Total BC",
+        "discipline": "Building Control"
+      },
+      {
+        "id": "c07",
+        "name": null,
+        "org": "LABC",
+        "discipline": "Warranty Provider",
+        "unassigned": true
+      },
+      {
+        "id": "c08",
+        "name": null,
+        "org": null,
+        "discipline": "Timber Frame Supplier",
+        "unassigned": true
+      },
+      {
+        "id": "c09",
+        "name": "Southern Water",
+        "org": "Southern Water",
+        "discipline": "Utility"
+      },
+      {
+        "id": "c10",
+        "name": "Environment Agency",
+        "org": "Environment Agency",
+        "discipline": "Utility"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "n01",
+      "label": "Topo Survey",
+      "type": "work_package",
+      "stage": 2,
+      "role": "c01",
+      "status": "complete",
+      "position": {
+        "x": 80,
+        "y": 230
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g01",
+          "inputLabel": "Site Access",
+          "outputs": [
+            {
+              "id": "o01",
+              "label": "Topo Survey"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n02",
+      "label": "Forward to Engineer",
+      "type": "work_package",
+      "stage": 2,
+      "role": "c01",
+      "status": "active",
+      "position": {
+        "x": 320,
+        "y": 230
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g02",
+          "inputLabel": "Topo Survey",
+          "outputs": [
+            {
+              "id": "o02",
+              "label": "Survey Data"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n03",
+      "label": "Tree ID: Engineer or Arborist?",
+      "type": "decision",
+      "stage": 2,
+      "role": "c05",
+      "status": "pending",
+      "position": {
+        "x": 530,
+        "y": 220
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "gd901",
+          "inputLabel": "Input",
+          "outputs": [
+            {
+              "id": "od902",
+              "label": "Engineer"
+            },
+            {
+              "id": "od903",
+              "label": "Arborist"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n04",
+      "label": "Tree Species Confirmed",
+      "type": "work_package",
+      "stage": 2,
+      "role": "c05",
+      "status": "pending",
+      "position": {
+        "x": 720,
+        "y": 230
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g04",
+          "inputLabel": "Tree ID Result",
+          "outputs": [
+            {
+              "id": "o04",
+              "label": "Tree Species Confirmed"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n05",
+      "label": "Part O",
+      "type": "work_package",
+      "stage": 2,
+      "role": "c03",
+      "status": "active",
+      "position": {
+        "x": 350,
+        "y": 50
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g05",
+          "inputLabel": "Brief",
+          "outputs": [
+            {
+              "id": "o05",
+              "label": "Part O Report"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n06",
+      "label": "SAP Calcs",
+      "type": "work_package",
+      "stage": 2,
+      "role": "c03",
+      "status": "active",
+      "position": {
+        "x": 350,
+        "y": 130
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g06",
+          "inputLabel": "Design Info",
+          "outputs": [
+            {
+              "id": "o06",
+              "label": "SAP Calcs"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n07",
+      "label": "Design Changes Needed?",
+      "type": "decision",
+      "stage": 2,
+      "role": "c03",
+      "status": "pending",
+      "position": {
+        "x": 550,
+        "y": 80
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "gd904",
+          "inputLabel": "Input",
+          "outputs": [
+            {
+              "id": "od905",
+              "label": "Yes"
+            },
+            {
+              "id": "od906",
+              "label": "No"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n08",
+      "label": "Confirm Footprint OK",
+      "type": "work_package",
+      "stage": 2,
+      "role": "c01",
+      "status": "pending",
+      "position": {
+        "x": 730,
+        "y": 80
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g08",
+          "inputLabel": "Design Review",
+          "outputs": [
+            {
+              "id": "o08",
+              "label": "Footprint Confirmed"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n09",
+      "label": "SE/TF Design Responsibility Agreement",
+      "type": "work_package",
+      "stage": 3,
+      "role": "c02",
+      "status": "active",
+      "position": {
+        "x": 1080,
+        "y": 150
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g09",
+          "inputLabel": "Appointment",
+          "outputs": [
+            {
+              "id": "o09",
+              "label": "Design Responsibility Agreement"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n10",
+      "label": "Foundation Design",
+      "type": "work_package",
+      "stage": 3,
+      "role": "c02",
+      "status": "pending",
+      "position": {
+        "x": 1080,
+        "y": 280
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g10a",
+          "inputLabel": "Soil Reports",
+          "outputs": [
+            {
+              "id": "o10a",
+              "label": "Foundation Design"
+            }
+          ]
+        },
+        {
+          "id": "g10b",
+          "inputLabel": "Tree Data",
+          "outputs": [
+            {
+              "id": "o10b",
+              "label": "Foundation Depths"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n11",
+      "label": "Superstructure Design",
+      "type": "work_package",
+      "stage": 3,
+      "role": "c02",
+      "status": "pending",
+      "position": {
+        "x": 1280,
+        "y": 280
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g11",
+          "inputLabel": "Foundation Design",
+          "outputs": [
+            {
+              "id": "o11",
+              "label": "Superstructure Design"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n12",
+      "label": "SE Calcs and Drawings",
+      "type": "work_package",
+      "stage": 3,
+      "role": "c02",
+      "status": "pending",
+      "position": {
+        "x": 1480,
+        "y": 280
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g12",
+          "inputLabel": "Superstructure Design",
+          "outputs": [
+            {
+              "id": "o12",
+              "label": "SE Calcs and Drawings"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n13",
+      "label": "Get Quotes",
+      "type": "work_package",
+      "stage": 2,
+      "role": "c04",
+      "status": "active",
+      "position": {
+        "x": 50,
+        "y": 410
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g13",
+          "inputLabel": "Brief",
+          "outputs": [
+            {
+              "id": "o13",
+              "label": "Quotes"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n14",
+      "label": "Appoint SI Consultant",
+      "type": "work_package",
+      "stage": 2,
+      "role": "c01",
+      "status": "pending",
+      "position": {
+        "x": 260,
+        "y": 410
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g14",
+          "inputLabel": "Quotes",
+          "outputs": [
+            {
+              "id": "o14",
+              "label": "SI Appointed"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n15",
+      "label": "Phase 1 Desktop Study",
+      "type": "work_package",
+      "stage": 2,
+      "role": "c04",
+      "status": "pending",
+      "position": {
+        "x": 460,
+        "y": 410
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g15",
+          "inputLabel": "SI Appointed",
+          "outputs": [
+            {
+              "id": "o15a",
+              "label": "Desktop Study"
+            },
+            {
+              "id": "o15b",
+              "label": "Perc Test Data"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n16",
+      "label": "Contamination Assessment",
+      "type": "work_package",
+      "stage": 2,
+      "role": "c04",
+      "status": "pending",
+      "position": {
+        "x": 680,
+        "y": 390
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g16",
+          "inputLabel": "Desktop Study",
+          "outputs": [
+            {
+              "id": "o16",
+              "label": "Contamination Assessment"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n17",
+      "label": "Phase 2 Site Inv",
+      "type": "work_package",
+      "stage": 3,
+      "role": "c04",
+      "status": "pending",
+      "position": {
+        "x": 880,
+        "y": 390
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g17",
+          "inputLabel": "Contamination Assessment",
+          "outputs": [
+            {
+              "id": "o17",
+              "label": "Site Investigation"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n18",
+      "label": "Soil Reports Received",
+      "type": "work_package",
+      "stage": 3,
+      "role": "c04",
+      "status": "pending",
+      "position": {
+        "x": 1060,
+        "y": 410
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g18",
+          "inputLabel": "Site Investigation",
+          "outputs": [
+            {
+              "id": "o18a",
+              "label": "Soil Reports"
+            },
+            {
+              "id": "o18b",
+              "label": "Bearing Capacity"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n19",
+      "label": "BRE 365 Perc Test",
+      "type": "work_package",
+      "stage": 2,
+      "role": "c04",
+      "status": "pending",
+      "position": {
+        "x": 680,
+        "y": 490
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g19",
+          "inputLabel": "Perc Test Data",
+          "outputs": [
+            {
+              "id": "o19",
+              "label": "Perc Test Results"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n20",
+      "label": "Soakaways Viable?",
+      "type": "decision",
+      "stage": 3,
+      "role": "c01",
+      "status": "pending",
+      "position": {
+        "x": 1180,
+        "y": 410
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "gd907",
+          "inputLabel": "Input",
+          "outputs": [
+            {
+              "id": "od908",
+              "label": "Yes"
+            },
+            {
+              "id": "od909",
+              "label": "No"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n21",
+      "label": "Design Soakaways",
+      "type": "work_package",
+      "stage": 3,
+      "role": "c01",
+      "status": "pending",
+      "position": {
+        "x": 1400,
+        "y": 340
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g21",
+          "inputLabel": "Soakaway Data",
+          "outputs": [
+            {
+              "id": "o21",
+              "label": "Soakaway Design"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n22",
+      "label": "Foul Assessment",
+      "type": "work_package",
+      "stage": 3,
+      "role": "c01",
+      "status": "pending",
+      "position": {
+        "x": 1400,
+        "y": 430
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g22",
+          "inputLabel": "Drainage Data",
+          "outputs": [
+            {
+              "id": "o22",
+              "label": "Foul Assessment"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n23",
+      "label": "Check Foundation Clashes?",
+      "type": "work_package",
+      "stage": 3,
+      "role": "c02",
+      "status": "pending",
+      "position": {
+        "x": 1580,
+        "y": 430
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g23",
+          "inputLabel": "Foul Assessment",
+          "outputs": [
+            {
+              "id": "o23",
+              "label": "Clash Check"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n24",
+      "label": "Southern Water App",
+      "type": "work_package",
+      "stage": 3,
+      "role": "c09",
+      "status": "pending",
+      "position": {
+        "x": 1750,
+        "y": 430
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g24",
+          "inputLabel": "Clash Check",
+          "outputs": [
+            {
+              "id": "o24",
+              "label": "SW Application"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n25",
+      "label": "Complete Drainage Design",
+      "type": "work_package",
+      "stage": 4,
+      "role": "c01",
+      "status": "pending",
+      "position": {
+        "x": 1900,
+        "y": 400
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g25a",
+          "inputLabel": "Soakaway Design",
+          "outputs": [
+            {
+              "id": "o25a",
+              "label": "Drainage Design"
+            }
+          ]
+        },
+        {
+          "id": "g25b",
+          "inputLabel": "SW Application",
+          "outputs": [
+            {
+              "id": "o25b",
+              "label": "Drainage Package"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n26",
+      "label": "Assess Watercourse",
+      "type": "work_package",
+      "stage": 3,
+      "role": "c01",
+      "status": "pending",
+      "position": {
+        "x": 1400,
+        "y": 520
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g26",
+          "inputLabel": "Watercourse Data",
+          "outputs": [
+            {
+              "id": "o26",
+              "label": "Watercourse Assessment"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n27",
+      "label": "EA Application?",
+      "type": "work_package",
+      "stage": 3,
+      "role": "c10",
+      "status": "pending",
+      "position": {
+        "x": 1600,
+        "y": 520
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g27",
+          "inputLabel": "Watercourse Assessment",
+          "outputs": [
+            {
+              "id": "o27",
+              "label": "EA Application"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n28",
+      "label": "Compile BC Package",
+      "type": "work_package",
+      "stage": 4,
+      "role": "c01",
+      "status": "pending",
+      "position": {
+        "x": 1550,
+        "y": 590
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g28a",
+          "inputLabel": "SE Calcs and Drawings",
+          "outputs": [
+            {
+              "id": "o28a",
+              "label": "BC Package"
+            }
+          ]
+        },
+        {
+          "id": "g28b",
+          "inputLabel": "Drainage Package",
+          "outputs": [
+            {
+              "id": "o28b",
+              "label": "BC Package"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n29",
+      "label": "Confirm Nothing Outstanding",
+      "type": "work_package",
+      "stage": 4,
+      "role": "c01",
+      "status": "pending",
+      "position": {
+        "x": 1750,
+        "y": 590
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g29",
+          "inputLabel": "BC Package",
+          "outputs": [
+            {
+              "id": "o29",
+              "label": "Confirmed Complete"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n30",
+      "label": "Submit to Total BC",
+      "type": "work_package",
+      "stage": 4,
+      "role": "c06",
+      "status": "pending",
+      "position": {
+        "x": 1940,
+        "y": 590
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g30",
+          "inputLabel": "Confirmed Complete",
+          "outputs": [
+            {
+              "id": "o30",
+              "label": "BC Submitted"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n31",
+      "label": "BC Consults Fire Brigade",
+      "type": "work_package",
+      "stage": 4,
+      "role": "c06",
+      "status": "pending",
+      "position": {
+        "x": 2130,
+        "y": 570
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g31",
+          "inputLabel": "BC Submitted",
+          "outputs": [
+            {
+              "id": "o31",
+              "label": "Fire Consultation"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n32",
+      "label": "Turning Head OK?",
+      "type": "decision",
+      "stage": 4,
+      "role": "c06",
+      "status": "pending",
+      "position": {
+        "x": 2320,
+        "y": 560
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "gd910",
+          "inputLabel": "Input",
+          "outputs": [
+            {
+              "id": "od911",
+              "label": "Yes"
+            },
+            {
+              "id": "od912",
+              "label": "No"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n33",
+      "label": "Fire Key Solution OK?",
+      "type": "decision",
+      "stage": 4,
+      "role": "c01",
+      "status": "pending",
+      "position": {
+        "x": 2500,
+        "y": 560
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "gd913",
+          "inputLabel": "Input",
+          "outputs": [
+            {
+              "id": "od914",
+              "label": "Yes"
+            },
+            {
+              "id": "od915",
+              "label": "No"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n34",
+      "label": "Fire Access Confirmed",
+      "type": "work_package",
+      "stage": 4,
+      "role": "c01",
+      "status": "pending",
+      "position": {
+        "x": 2680,
+        "y": 540
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g34",
+          "inputLabel": "Fire Solution",
+          "outputs": [
+            {
+              "id": "o34",
+              "label": "Fire Access Confirmed"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n35",
+      "label": "Resolve Access Issues",
+      "type": "work_package",
+      "stage": 4,
+      "role": "c01",
+      "status": "pending",
+      "position": {
+        "x": 2680,
+        "y": 620
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g35",
+          "inputLabel": "Issues",
+          "outputs": [
+            {
+              "id": "o35",
+              "label": "Revised Solution"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n36",
+      "label": "Southern Water Approval",
+      "type": "work_package",
+      "stage": 4,
+      "role": "c09",
+      "status": "pending",
+      "position": {
+        "x": 2000,
+        "y": 710
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g36",
+          "inputLabel": "SW Application",
+          "outputs": [
+            {
+              "id": "o36",
+              "label": "SW Approval"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n37",
+      "label": "EA Approval If Required",
+      "type": "work_package",
+      "stage": 4,
+      "role": "c10",
+      "status": "pending",
+      "position": {
+        "x": 2000,
+        "y": 770
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g37",
+          "inputLabel": "EA Application",
+          "outputs": [
+            {
+              "id": "o37",
+              "label": "EA Approval"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n38",
+      "label": "Percolation OK?",
+      "type": "decision",
+      "stage": 4,
+      "role": "c01",
+      "status": "pending",
+      "position": {
+        "x": 1820,
+        "y": 860
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "gd916",
+          "inputLabel": "Input",
+          "outputs": [
+            {
+              "id": "od917",
+              "label": "Yes"
+            },
+            {
+              "id": "od918",
+              "label": "No"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n39",
+      "label": "Separate SW drainage, outside LABC",
+      "type": "work_package",
+      "stage": 4,
+      "role": "c01",
+      "status": "pending",
+      "position": {
+        "x": 2050,
+        "y": 810
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g39",
+          "inputLabel": "Good Percolation",
+          "outputs": [
+            {
+              "id": "o39",
+              "label": "Separate Drainage"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n40",
+      "label": "Shared SW drainage, in LABC Scope",
+      "type": "work_package",
+      "stage": 4,
+      "role": "c01",
+      "status": "pending",
+      "position": {
+        "x": 2050,
+        "y": 900
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g40",
+          "inputLabel": "Poor Percolation",
+          "outputs": [
+            {
+              "id": "o40",
+              "label": "Shared Drainage"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n41",
+      "label": "Compile LABC Package",
+      "type": "work_package",
+      "stage": 4,
+      "role": "c01",
+      "status": "pending",
+      "position": {
+        "x": 2650,
+        "y": 220
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g41",
+          "inputLabel": "SE Calcs and Drawings",
+          "outputs": [
+            {
+              "id": "o41",
+              "label": "LABC Package"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n42",
+      "label": "LABC Warranty Check",
+      "type": "work_package",
+      "stage": 5,
+      "role": "c07",
+      "status": "pending",
+      "position": {
+        "x": 2850,
+        "y": 220
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g42",
+          "inputLabel": "LABC Package",
+          "outputs": [
+            {
+              "id": "o42",
+              "label": "Warranty Check"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n43",
+      "label": "LABC Feedback provided",
+      "type": "work_package",
+      "stage": 5,
+      "role": "c07",
+      "status": "pending",
+      "position": {
+        "x": 3060,
+        "y": 220
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g43",
+          "inputLabel": "Warranty Check",
+          "outputs": [
+            {
+              "id": "o43",
+              "label": "LABC Feedback"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n44",
+      "label": "Plan Check Inc Fire Comments",
+      "type": "work_package",
+      "stage": 5,
+      "role": "c06",
+      "status": "pending",
+      "position": {
+        "x": 2830,
+        "y": 470
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g44",
+          "inputLabel": "Fire Access Confirmed",
+          "outputs": [
+            {
+              "id": "o44",
+              "label": "Plan Check Results"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n45",
+      "label": "Plan Check Passed",
+      "type": "work_package",
+      "stage": 5,
+      "role": "c06",
+      "status": "pending",
+      "position": {
+        "x": 3040,
+        "y": 470
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g45",
+          "inputLabel": "Plan Check Results",
+          "outputs": [
+            {
+              "id": "o45",
+              "label": "Plan Check Passed"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n46",
+      "label": "Place TF Order",
+      "type": "work_package",
+      "stage": 5,
+      "role": "c08",
+      "status": "pending",
+      "position": {
+        "x": 2920,
+        "y": 370
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g46",
+          "inputLabel": "Design Complete",
+          "outputs": [
+            {
+              "id": "o46",
+              "label": "TF Order"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n47",
+      "label": "TF Produces Calcs",
+      "type": "work_package",
+      "stage": 5,
+      "role": "c08",
+      "status": "pending",
+      "position": {
+        "x": 3100,
+        "y": 370
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g47",
+          "inputLabel": "TF Order",
+          "outputs": [
+            {
+              "id": "o47",
+              "label": "TF Calcs"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n48",
+      "label": "TF Calcs to BC and LABC",
+      "type": "work_package",
+      "stage": 5,
+      "role": "c08",
+      "status": "pending",
+      "position": {
+        "x": 3280,
+        "y": 370
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g48",
+          "inputLabel": "TF Calcs",
+          "outputs": [
+            {
+              "id": "o48",
+              "label": "TF Package"
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n49",
+      "label": "All Approvals Gate",
+      "type": "checkpoint",
+      "stage": 5,
+      "role": "c01",
+      "status": "pending",
+      "position": {
+        "x": 3130,
+        "y": 570
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "n50",
+      "label": "COMMENCE GROUNDWORKS",
+      "type": "checkpoint",
+      "stage": 5,
+      "role": "c01",
+      "status": "pending",
+      "position": {
+        "x": 3330,
+        "y": 570
+      },
+      "notes": "",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [],
+      "history": [
+        {
+          "event": "created",
+          "timestamp": "2026-03-28T09:00:00Z"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "e01",
+      "source": "n01",
+      "source_handle": "output-g01-o01",
+      "target": "n02",
+      "target_handle": "input-g02"
+    },
+    {
+      "id": "e02",
+      "source": "n02",
+      "source_handle": "output-g02-o02",
+      "target": "n03",
+      "target_handle": "input"
+    },
+    {
+      "id": "e03",
+      "source": "n03",
+      "source_handle": "output-gd901-od902",
+      "target": "n04",
+      "target_handle": "input-g04"
+    },
+    {
+      "id": "e04",
+      "source": "n05",
+      "source_handle": "output-g05-o05",
+      "target": "n07",
+      "target_handle": "input"
+    },
+    {
+      "id": "e05",
+      "source": "n06",
+      "source_handle": "output-g06-o06",
+      "target": "n07",
+      "target_handle": "input"
+    },
+    {
+      "id": "e06",
+      "source": "n07",
+      "source_handle": "output-gd904-od905",
+      "target": "n08",
+      "target_handle": "input-g08"
+    },
+    {
+      "id": "e07",
+      "source": "n18",
+      "source_handle": "output-g18-o18a",
+      "target": "n10",
+      "target_handle": "input-g10a"
+    },
+    {
+      "id": "e08",
+      "source": "n04",
+      "source_handle": "output-g04-o04",
+      "target": "n10",
+      "target_handle": "input-g10b"
+    },
+    {
+      "id": "e09",
+      "source": "n10",
+      "source_handle": "output-g10a-o10a",
+      "target": "n11",
+      "target_handle": "input-g11"
+    },
+    {
+      "id": "e10",
+      "source": "n11",
+      "source_handle": "output-g11-o11",
+      "target": "n12",
+      "target_handle": "input-g12"
+    },
+    {
+      "id": "e11",
+      "source": "n13",
+      "source_handle": "output-g13-o13",
+      "target": "n14",
+      "target_handle": "input-g14"
+    },
+    {
+      "id": "e12",
+      "source": "n14",
+      "source_handle": "output-g14-o14",
+      "target": "n15",
+      "target_handle": "input-g15"
+    },
+    {
+      "id": "e13",
+      "source": "n15",
+      "source_handle": "output-g15-o15a",
+      "target": "n16",
+      "target_handle": "input-g16"
+    },
+    {
+      "id": "e14",
+      "source": "n16",
+      "source_handle": "output-g16-o16",
+      "target": "n17",
+      "target_handle": "input-g17"
+    },
+    {
+      "id": "e15",
+      "source": "n17",
+      "source_handle": "output-g17-o17",
+      "target": "n18",
+      "target_handle": "input-g18"
+    },
+    {
+      "id": "e16",
+      "source": "n15",
+      "source_handle": "output-g15-o15b",
+      "target": "n19",
+      "target_handle": "input-g19"
+    },
+    {
+      "id": "e17",
+      "source": "n18",
+      "source_handle": "output-g18-o18a",
+      "target": "n20",
+      "target_handle": "input"
+    },
+    {
+      "id": "e18",
+      "source": "n20",
+      "source_handle": "output-gd907-od908",
+      "target": "n21",
+      "target_handle": "input-g21"
+    },
+    {
+      "id": "e19",
+      "source": "n20",
+      "source_handle": "output-gd907-od908",
+      "target": "n22",
+      "target_handle": "input-g22"
+    },
+    {
+      "id": "e20",
+      "source": "n20",
+      "source_handle": "output-gd907-od909",
+      "target": "n26",
+      "target_handle": "input-g26"
+    },
+    {
+      "id": "e21",
+      "source": "n22",
+      "source_handle": "output-g22-o22",
+      "target": "n23",
+      "target_handle": "input-g23"
+    },
+    {
+      "id": "e22",
+      "source": "n23",
+      "source_handle": "output-g23-o23",
+      "target": "n24",
+      "target_handle": "input-g24"
+    },
+    {
+      "id": "e23",
+      "source": "n21",
+      "source_handle": "output-g21-o21",
+      "target": "n25",
+      "target_handle": "input-g25a"
+    },
+    {
+      "id": "e24",
+      "source": "n24",
+      "source_handle": "output-g24-o24",
+      "target": "n25",
+      "target_handle": "input-g25b"
+    },
+    {
+      "id": "e25",
+      "source": "n26",
+      "source_handle": "output-g26-o26",
+      "target": "n27",
+      "target_handle": "input-g27"
+    },
+    {
+      "id": "e26",
+      "source": "n12",
+      "source_handle": "output-g12-o12",
+      "target": "n28",
+      "target_handle": "input-g28a"
+    },
+    {
+      "id": "e27",
+      "source": "n25",
+      "source_handle": "output-g25b-o25b",
+      "target": "n28",
+      "target_handle": "input-g28b"
+    },
+    {
+      "id": "e28",
+      "source": "n28",
+      "source_handle": "output-g28a-o28a",
+      "target": "n29",
+      "target_handle": "input-g29"
+    },
+    {
+      "id": "e29",
+      "source": "n29",
+      "source_handle": "output-g29-o29",
+      "target": "n30",
+      "target_handle": "input-g30"
+    },
+    {
+      "id": "e30",
+      "source": "n30",
+      "source_handle": "output-g30-o30",
+      "target": "n31",
+      "target_handle": "input-g31"
+    },
+    {
+      "id": "e31",
+      "source": "n31",
+      "source_handle": "output-g31-o31",
+      "target": "n32",
+      "target_handle": "input"
+    },
+    {
+      "id": "e32",
+      "source": "n32",
+      "source_handle": "output-gd910-od911",
+      "target": "n33",
+      "target_handle": "input"
+    },
+    {
+      "id": "e33",
+      "source": "n33",
+      "source_handle": "output-gd913-od914",
+      "target": "n34",
+      "target_handle": "input-g34"
+    },
+    {
+      "id": "e34",
+      "source": "n33",
+      "source_handle": "output-gd913-od915",
+      "target": "n35",
+      "target_handle": "input-g35"
+    },
+    {
+      "id": "e35",
+      "source": "n24",
+      "source_handle": "output-g24-o24",
+      "target": "n36",
+      "target_handle": "input-g36"
+    },
+    {
+      "id": "e36",
+      "source": "n27",
+      "source_handle": "output-g27-o27",
+      "target": "n37",
+      "target_handle": "input-g37"
+    },
+    {
+      "id": "e37",
+      "source": "n19",
+      "source_handle": "output-g19-o19",
+      "target": "n38",
+      "target_handle": "input"
+    },
+    {
+      "id": "e38",
+      "source": "n38",
+      "source_handle": "output-gd916-od917",
+      "target": "n39",
+      "target_handle": "input-g39"
+    },
+    {
+      "id": "e39",
+      "source": "n38",
+      "source_handle": "output-gd916-od918",
+      "target": "n40",
+      "target_handle": "input-g40"
+    },
+    {
+      "id": "e40",
+      "source": "n12",
+      "source_handle": "output-g12-o12",
+      "target": "n41",
+      "target_handle": "input-g41"
+    },
+    {
+      "id": "e41",
+      "source": "n41",
+      "source_handle": "output-g41-o41",
+      "target": "n42",
+      "target_handle": "input-g42"
+    },
+    {
+      "id": "e42",
+      "source": "n42",
+      "source_handle": "output-g42-o42",
+      "target": "n43",
+      "target_handle": "input-g43"
+    },
+    {
+      "id": "e43",
+      "source": "n34",
+      "source_handle": "output-g34-o34",
+      "target": "n44",
+      "target_handle": "input-g44"
+    },
+    {
+      "id": "e44",
+      "source": "n44",
+      "source_handle": "output-g44-o44",
+      "target": "n45",
+      "target_handle": "input-g45"
+    },
+    {
+      "id": "e45",
+      "source": "n43",
+      "source_handle": "output-g43-o43",
+      "target": "n46",
+      "target_handle": "input-g46"
+    },
+    {
+      "id": "e46",
+      "source": "n46",
+      "source_handle": "output-g46-o46",
+      "target": "n47",
+      "target_handle": "input-g47"
+    },
+    {
+      "id": "e47",
+      "source": "n47",
+      "source_handle": "output-g47-o47",
+      "target": "n48",
+      "target_handle": "input-g48"
+    },
+    {
+      "id": "e48",
+      "source": "n45",
+      "source_handle": "output-g45-o45",
+      "target": "n49",
+      "target_handle": "input"
+    },
+    {
+      "id": "e49",
+      "source": "n43",
+      "source_handle": "output-g43-o43",
+      "target": "n49",
+      "target_handle": "input"
+    },
+    {
+      "id": "e50",
+      "source": "n48",
+      "source_handle": "output-g48-o48",
+      "target": "n49",
+      "target_handle": "input"
+    },
+    {
+      "id": "e51",
+      "source": "n36",
+      "source_handle": "output-g36-o36",
+      "target": "n49",
+      "target_handle": "input"
+    },
+    {
+      "id": "e52",
+      "source": "n37",
+      "source_handle": "output-g37-o37",
+      "target": "n49",
+      "target_handle": "input"
+    },
+    {
+      "id": "e53",
+      "source": "n34",
+      "source_handle": "output-g34-o34",
+      "target": "n49",
+      "target_handle": "input"
+    },
+    {
+      "id": "e54",
+      "source": "n49",
+      "source_handle": "output",
+      "target": "n50",
+      "target_handle": "input"
+    }
+  ],
+  "canvas": {
+    "zoom": 0.7,
+    "pan_x": 0,
+    "pan_y": 0
+  }
+}

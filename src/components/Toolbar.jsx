@@ -57,10 +57,9 @@ export default function Toolbar({ addMode, setAddMode, onFitView }) {
   };
 
   const nodeTypes = [
-    { key: 'work_package', label: 'Work Package' },
-    { key: 'information_request', label: 'Info Request' },
-    { key: 'milestone', label: 'Milestone' },
-    { key: 'user_checkpoint', label: 'Checkpoint' },
+    { key: 'work_package', label: 'Work Section' },
+    { key: 'decision', label: 'Decision' },
+    { key: 'checkpoint', label: 'Checkpoint' },
   ];
 
   return (

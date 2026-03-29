@@ -60,7 +60,7 @@ export default function PropertiesPanel() {
     }
   };
 
-  const hasGroups = data.nodeType === 'work_package' || data.nodeType === 'information_request';
+  const hasGroups = data.nodeType === 'work_package' || data.nodeType === 'decision';
 
   return (
     <div style={panelStyle}>
@@ -79,10 +79,9 @@ export default function PropertiesPanel() {
       <label style={labelStyle}>Type</label>
       <select style={selectStyle} value={data.nodeType}
         onChange={(e) => update('nodeType', e.target.value)} disabled={readOnly}>
-        <option value="work_package">Work Package</option>
-        <option value="information_request">Information Request</option>
-        <option value="milestone">Milestone</option>
-        <option value="user_checkpoint">User Checkpoint</option>
+        <option value="work_package">Work Section</option>
+        <option value="decision">Decision</option>
+        <option value="checkpoint">Checkpoint</option>
       </select>
 
       <label style={labelStyle}>Assigned Role</label>

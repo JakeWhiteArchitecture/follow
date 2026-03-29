@@ -84,7 +84,7 @@ const useProjectStore = create((set, get) => ({
   loadProject: (json) => {
     const nodes = (json.nodes || []).map((n) => ({
       id: n.id,
-      type: n.type === 'milestone' ? 'milestone' : n.type === 'user_checkpoint' ? 'checkpoint' : n.type === 'information_request' ? 'infoRequest' : 'workPackage',
+      type: n.type === 'decision' ? 'decision' : n.type === 'checkpoint' ? 'checkpoint' : 'workPackage',
       position: n.position || { x: 0, y: 0 },
       data: {
         label: n.label,
@@ -297,19 +297,31 @@ const useProjectStore = create((set, get) => ({
   // Node CRUD
   addNode: (nodeType, position, stage, name) => {
     const id = `node_${generateId()}`;
-    const rfType = nodeType === 'milestone' ? 'milestone' : nodeType === 'user_checkpoint' ? 'checkpoint' : nodeType === 'information_request' ? 'infoRequest' : 'workPackage';
+    const rfType = nodeType === 'decision' ? 'decision' : nodeType === 'checkpoint' ? 'checkpoint' : 'workPackage';
 
-    const label = name || (nodeType === 'work_package' ? 'New Work Package'
-      : nodeType === 'information_request' ? 'New Info Request'
-      : nodeType === 'milestone' ? 'New Milestone'
-      : 'New Checkpoint');
+    const label = name || (nodeType === 'work_package' ? 'New Work Section'
+      : nodeType === 'decision' ? 'Decision?'
+      : 'Checkpoint');
 
-    // Default group for work packages and info requests — output named after the node
-    const defaultGroups = (rfType === 'workPackage' || rfType === 'infoRequest') ? [{
-      id: `g_${generateId()}`,
-      inputLabel: 'Input',
-      outputs: [{ id: `o_${generateId()}`, label }],
-    }] : [];
+    // Default groups by type
+    let defaultGroups = [];
+    if (rfType === 'workPackage') {
+      defaultGroups = [{
+        id: `g_${generateId()}`,
+        inputLabel: 'Input',
+        outputs: [{ id: `o_${generateId()}`, label }],
+      }];
+    } else if (rfType === 'decision') {
+      defaultGroups = [{
+        id: `g_${generateId()}`,
+        inputLabel: 'Input',
+        outputs: [
+          { id: `o_${generateId()}`, label: 'Yes' },
+          { id: `o_${generateId()}`, label: 'No' },
+        ],
+      }];
+    }
+    // Checkpoint: no groups, uses simple input/output handles
 
     const newNode = {
       id,
