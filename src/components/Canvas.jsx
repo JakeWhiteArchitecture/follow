@@ -230,6 +230,101 @@ function ModuleBackgrounds({ modules, nodes, viewport }) {
   );
 }
 
+const megaNumberStyle = {
+  position: 'absolute',
+  top: '50%',
+  left: '50%',
+  fontSize: '38vw',
+  fontWeight: 900,
+  lineHeight: 1,
+  pointerEvents: 'none',
+  userSelect: 'none',
+  zIndex: 0,
+  transition: 'transform 400ms cubic-bezier(0.4, 0, 0.2, 1), opacity 400ms ease',
+  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+};
+
+function MegaStageNumber({ currentStage, stageKeys }) {
+  const prevStageRef = useRef(currentStage);
+  const [outgoing, setOutgoing] = useState(null); // { stage, direction }
+  const [incoming, setIncoming] = useState({ stage: currentStage, phase: 'idle' });
+  const timeoutRef = useRef(null);
+
+  useEffect(() => {
+    const prev = prevStageRef.current;
+    prevStageRef.current = currentStage;
+    if (prev === currentStage) return;
+
+    const prevIdx = stageKeys.indexOf(String(prev));
+    const nextIdx = stageKeys.indexOf(String(currentStage));
+    const dir = nextIdx > prevIdx ? 'right' : 'left';
+
+    // Start outgoing animation
+    setOutgoing({ stage: prev, direction: dir });
+    // Start incoming animation — initially offset
+    setIncoming({ stage: currentStage, phase: 'enter', direction: dir });
+
+    // After a frame, trigger the CSS transition by switching to 'active'
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIncoming((s) => ({ ...s, phase: 'active' }));
+      });
+    });
+
+    // Cleanup after transition
+    clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      setOutgoing(null);
+      setIncoming({ stage: currentStage, phase: 'idle' });
+    }, 450);
+
+    return () => clearTimeout(timeoutRef.current);
+  }, [currentStage, stageKeys]);
+
+  const colorIdx = parseInt(incoming.stage);
+  const inColor = STAGE_COLORS[colorIdx] || '#60a5fa';
+
+  // Incoming transform
+  let inTransform = 'translate(-50%, -50%)';
+  let inOpacity = 0.07;
+  if (incoming.phase === 'enter') {
+    const offset = incoming.direction === 'right' ? '60%' : '-60%';
+    inTransform = `translate(-50%, -50%) translateX(${offset})`;
+    inOpacity = 0;
+  }
+
+  return (
+    <>
+      {/* Outgoing number */}
+      {outgoing && (() => {
+        const outColorIdx = parseInt(outgoing.stage);
+        const outColor = STAGE_COLORS[outColorIdx] || '#60a5fa';
+        const exitX = outgoing.direction === 'right' ? '-60%' : '60%';
+        return (
+          <div style={{
+            ...megaNumberStyle,
+            transform: `translate(-50%, -50%) translateX(${exitX})`,
+            color: outColor,
+            opacity: 0,
+          }}>
+            {outgoing.stage}
+          </div>
+        );
+      })()}
+
+      {/* Incoming / current number */}
+      <div style={{
+        ...megaNumberStyle,
+        transform: inTransform,
+        color: inColor,
+        opacity: inOpacity,
+      }}>
+        {incoming.stage}
+      </div>
+    </>
+  );
+}
+
 function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stages }) {
   const { fitView } = useReactFlow();
   const nodes = useProjectStore((s) => s.nodes);
@@ -338,7 +433,10 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
   const nextLabel = hasNext ? `S${stageKeys[currentIdx + 1]}` : '';
 
   return (
-    <div ref={wrapperRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div ref={wrapperRef} style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
+      {/* Mega stage number underlay */}
+      <MegaStageNumber currentStage={currentStage} stageKeys={stageKeys} />
+
       <ReactFlow
         nodes={styledNodes}
         edges={edges}
