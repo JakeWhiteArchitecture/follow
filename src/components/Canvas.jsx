@@ -419,42 +419,43 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
       return () => clearTimeout(timer);
     }
 
-    const stageNodes = nodes.filter((n) => n.data.stage === currentStage);
-    if (stageNodes.length === 0) return;
-
-    let cx = 0, cy = 0;
-    stageNodes.forEach((n) => { cx += n.position.x; cy += n.position.y; });
-    cx /= stageNodes.length;
-    cy /= stageNodes.length;
-
-    const zoom = savedZoom.current || getViewport().zoom;
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-    const { width, height } = wrapper.getBoundingClientRect();
-
-    // Animate pan manually with ease-out curve — horizontal only
-    const startVp = getViewport();
-    const targetX = width / 2 - cx * zoom;
-    const targetY = startVp.y; // preserve Y position
-    const startX = startVp.x;
-    const startY = startVp.y;
-    const duration = 600;
-    const startTime = performance.now();
-
+    // Defer pan start so React Flow settles after restyle
     cancelAnimationFrame(panAnimRef.current);
-    const animate = (now) => {
-      const elapsed = now - startTime;
-      const t = Math.min(elapsed / duration, 1);
-      // Ease-out cubic: decelerating curve
-      const ease = 1 - Math.pow(1 - t, 3);
-      const x = startX + (targetX - startX) * ease;
-      const y = startY + (targetY - startY) * ease;
-      setRFViewport({ x, y, zoom }, { duration: 0 });
-      if (t < 1) panAnimRef.current = requestAnimationFrame(animate);
-    };
-    panAnimRef.current = requestAnimationFrame(animate);
+    const rafId = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const stageNodes = nodes.filter((n) => n.data.stage === currentStage);
+        if (stageNodes.length === 0) return;
 
-    return () => cancelAnimationFrame(panAnimRef.current);
+        let cx = 0, cy = 0;
+        stageNodes.forEach((n) => { cx += n.position.x; cy += n.position.y; });
+        cx /= stageNodes.length;
+        cy /= stageNodes.length;
+
+        const zoom = savedZoom.current || getViewport().zoom;
+        const wrapper = wrapperRef.current;
+        if (!wrapper) return;
+        const { width } = wrapper.getBoundingClientRect();
+
+        const startVp = getViewport();
+        const targetX = width / 2 - cx * zoom;
+        const startX = startVp.x;
+        const startY = startVp.y;
+        const duration = 600;
+        const startTime = performance.now();
+
+        const animate = (now) => {
+          const elapsed = now - startTime;
+          const t = Math.min(elapsed / duration, 1);
+          const ease = 1 - Math.pow(1 - t, 3);
+          const x = startX + (targetX - startX) * ease;
+          setRFViewport({ x, y: startY, zoom }, { duration: 0 });
+          if (t < 1) panAnimRef.current = requestAnimationFrame(animate);
+        };
+        panAnimRef.current = requestAnimationFrame(animate);
+      });
+    });
+
+    return () => { cancelAnimationFrame(rafId); cancelAnimationFrame(panAnimRef.current); };
   }, [currentStage]);
 
   const onNodeClick = useCallback((event, node) => {
