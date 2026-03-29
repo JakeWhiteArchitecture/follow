@@ -244,10 +244,36 @@ const megaNumberStyle = {
   fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
 };
 
+// Individual animating number — mounts at startTransform, transitions to endTransform
+function AnimatingNumber({ stage, startTransform, startOpacity, endTransform, endOpacity, color }) {
+  const ref = useRef(null);
+  const [active, setActive] = useState(false);
+
+  useEffect(() => {
+    // Force the start position to paint, then transition
+    const el = ref.current;
+    if (!el) return;
+    // Force reflow so start style is applied
+    el.getBoundingClientRect();
+    requestAnimationFrame(() => setActive(true));
+  }, []);
+
+  return (
+    <div ref={ref} style={{
+      ...megaNumberStyle,
+      transform: active ? endTransform : startTransform,
+      opacity: active ? endOpacity : startOpacity,
+      color,
+    }}>
+      {stage}
+    </div>
+  );
+}
+
 function MegaStageNumber({ currentStage, stageKeys }) {
   const prevStageRef = useRef(currentStage);
-  const [display, setDisplay] = useState({ stage: currentStage, transform: 'translate(-50%, -50%)', opacity: 0.07 });
-  const [outgoing, setOutgoing] = useState(null);
+  const [animKey, setAnimKey] = useState(0);
+  const [anim, setAnim] = useState(null); // { prevStage, nextStage, dir }
   const timeoutRef = useRef(null);
 
   useEffect(() => {
@@ -259,66 +285,60 @@ function MegaStageNumber({ currentStage, stageKeys }) {
     const nextIdx = stageKeys.indexOf(String(currentStage));
     const dir = nextIdx > prevIdx ? 'right' : 'left';
 
-    // Animate outgoing: start at center, then slide + rotate out
-    const exitX = dir === 'right' ? '-50%' : '50%';
-    const exitRot = dir === 'right' ? '-6deg' : '6deg';
-    setOutgoing({
-      stage: prev,
-      // Start at center (will transition to exit)
-      startTransform: 'translate(-50%, -50%) translateX(0) rotate(0deg)',
-      endTransform: `translate(-50%, -50%) translateX(${exitX}) rotate(${exitRot})`,
-      phase: 'start',
-    });
-
-    // Animate incoming: start offset, then slide to center
-    const enterX = dir === 'right' ? '50%' : '-50%';
-    const enterRot = dir === 'right' ? '6deg' : '-6deg';
-    setDisplay({
-      stage: currentStage,
-      transform: `translate(-50%, -50%) translateX(${enterX}) rotate(${enterRot})`,
-      opacity: 0,
-    });
-
-    // Trigger transitions on next frame
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setOutgoing((o) => o ? { ...o, phase: 'exit' } : null);
-        setDisplay({
-          stage: currentStage,
-          transform: 'translate(-50%, -50%) translateX(0) rotate(0deg)',
-          opacity: 0.07,
-        });
-      });
-    });
+    setAnimKey((k) => k + 1);
+    setAnim({ prevStage: prev, nextStage: currentStage, dir });
 
     clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => setOutgoing(null), 600);
+    timeoutRef.current = setTimeout(() => setAnim(null), 650);
     return () => clearTimeout(timeoutRef.current);
   }, [currentStage, stageKeys]);
 
-  const inColor = STAGE_COLORS[parseInt(display.stage)] || '#60a5fa';
+  const center = 'translate(-50%, -50%) translateX(0) rotate(0deg)';
 
+  if (anim) {
+    const { prevStage, nextStage, dir } = anim;
+    const exitX = dir === 'right' ? '-50%' : '50%';
+    const exitRot = dir === 'right' ? '-6deg' : '6deg';
+    const enterX = dir === 'right' ? '50%' : '-50%';
+    const enterRot = dir === 'right' ? '6deg' : '-6deg';
+    const prevColor = STAGE_COLORS[parseInt(prevStage)] || '#60a5fa';
+    const nextColor = STAGE_COLORS[parseInt(nextStage)] || '#60a5fa';
+
+    return (
+      <>
+        <AnimatingNumber
+          key={`out-${animKey}`}
+          stage={prevStage}
+          startTransform={center}
+          startOpacity={0.07}
+          endTransform={`translate(-50%, -50%) translateX(${exitX}) rotate(${exitRot})`}
+          endOpacity={0}
+          color={prevColor}
+        />
+        <AnimatingNumber
+          key={`in-${animKey}`}
+          stage={nextStage}
+          startTransform={`translate(-50%, -50%) translateX(${enterX}) rotate(${enterRot})`}
+          startOpacity={0}
+          endTransform={center}
+          endOpacity={0.07}
+          color={nextColor}
+        />
+      </>
+    );
+  }
+
+  // Idle state
+  const idleColor = STAGE_COLORS[parseInt(currentStage)] || '#60a5fa';
   return (
-    <>
-      {outgoing && (() => {
-        const outColor = STAGE_COLORS[parseInt(outgoing.stage)] || '#60a5fa';
-        const t = outgoing.phase === 'exit' ? outgoing.endTransform : outgoing.startTransform;
-        const o = outgoing.phase === 'exit' ? 0 : 0.07;
-        return (
-          <div style={{ ...megaNumberStyle, transform: t, color: outColor, opacity: o }}>
-            {outgoing.stage}
-          </div>
-        );
-      })()}
-      <div style={{
-        ...megaNumberStyle,
-        transform: display.transform,
-        color: inColor,
-        opacity: display.opacity,
-      }}>
-        {display.stage}
-      </div>
-    </>
+    <div style={{
+      ...megaNumberStyle,
+      transform: center,
+      color: idleColor,
+      opacity: 0.07,
+    }}>
+      {currentStage}
+    </div>
   );
 }
 
