@@ -340,7 +340,7 @@ function MegaStageNumber({ currentStage, stageKeys }) {
           key={`out-${animKey}`}
           stage={prevStage}
           startTransform={center}
-          startOpacity={0.12}
+          startOpacity={0.06}
           endTransform={`translate(-50%, -50%) translateX(${exitX}) rotateY(${exitRotY})`}
           endOpacity={0}
           color={prevColor}
@@ -351,7 +351,7 @@ function MegaStageNumber({ currentStage, stageKeys }) {
           startTransform={`translate(-50%, -50%) translateX(${enterX}) rotateY(${enterRotY})`}
           startOpacity={0}
           endTransform={center}
-          endOpacity={0.15}
+          endOpacity={0.075}
           color={nextColor}
         />
       </>
@@ -364,7 +364,7 @@ function MegaStageNumber({ currentStage, stageKeys }) {
       ...megaNumberStyle,
       transform: center,
       color: idleColor,
-      opacity: 0.1,
+      opacity: 0.05,
     }}>
       {currentStage}
     </div>
