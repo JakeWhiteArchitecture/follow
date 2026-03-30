@@ -6,12 +6,18 @@
  * - ACTIVE: all inputs satisfied, awaiting completion
  * - COMPLETE: marked complete by owner
  * - BLOCKED: was active but a dependency has been reopened
+ *
+ * Loop edges (edge.data.loop === true) are excluded from:
+ * - Cycle detection (they are intentional back-edges)
+ * - Status propagation (they re-trigger, not prerequisite)
  */
 
 export function propagateStatuses(nodes, edges) {
   // Build adjacency: for each node, find its upstream (source) nodes
+  // Exclude loop edges — they are re-triggers, not prerequisites
   const incomingMap = new Map();
   for (const edge of edges) {
+    if (edge.data?.loop) continue; // skip loop edges
     if (!incomingMap.has(edge.target)) {
       incomingMap.set(edge.target, []);
     }
@@ -21,12 +27,10 @@ export function propagateStatuses(nodes, edges) {
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
 
   return nodes.map((node) => {
-    // Complete nodes stay complete (user controls this)
     if (node.data.status === 'complete') return node;
 
     const upstreamIds = incomingMap.get(node.id) || [];
     if (upstreamIds.length === 0) {
-      // No dependencies — active
       if (node.data.status === 'pending') {
         return { ...node, data: { ...node.data, status: 'active' } };
       }
@@ -44,12 +48,10 @@ export function propagateStatuses(nodes, edges) {
     });
 
     if (allComplete) {
-      // All inputs satisfied
       if (node.data.status === 'pending' || node.data.status === 'blocked') {
         return { ...node, data: { ...node.data, status: 'active' } };
       }
     } else if (anyIncomplete) {
-      // Dependencies unmet
       if (node.data.status === 'active') {
         return { ...node, data: { ...node.data, status: 'blocked' } };
       } else if (node.data.status !== 'blocked') {
@@ -63,7 +65,8 @@ export function propagateStatuses(nodes, edges) {
 
 /**
  * Detect circular dependencies using DFS.
- * Returns true if a cycle exists.
+ * Edges marked with data.loop === true are excluded — they are intentional.
+ * Returns true if a non-loop cycle exists.
  */
 export function detectCycle(nodes, edges) {
   const adjList = new Map();
@@ -71,6 +74,7 @@ export function detectCycle(nodes, edges) {
     adjList.set(node.id, []);
   }
   for (const edge of edges) {
+    if (edge.data?.loop) continue; // skip loop edges
     if (adjList.has(edge.source)) {
       adjList.get(edge.source).push(edge.target);
     }
@@ -110,9 +114,8 @@ export function traceChain(nodeId, edges) {
   const nodeIds = new Set([nodeId]);
   const edgeIds = new Set();
 
-  // Build forward and backward adjacency from edges
-  const downstream = new Map(); // source → [{target, edgeId}]
-  const upstream = new Map();   // target → [{source, edgeId}]
+  const downstream = new Map();
+  const upstream = new Map();
   for (const e of edges) {
     if (!downstream.has(e.source)) downstream.set(e.source, []);
     downstream.get(e.source).push({ target: e.target, edgeId: e.id });
@@ -120,7 +123,6 @@ export function traceChain(nodeId, edges) {
     upstream.get(e.target).push({ source: e.source, edgeId: e.id });
   }
 
-  // Walk downstream
   const queue = [nodeId];
   const visited = new Set([nodeId]);
   while (queue.length > 0) {
@@ -135,7 +137,6 @@ export function traceChain(nodeId, edges) {
     }
   }
 
-  // Walk upstream
   const queue2 = [nodeId];
   const visited2 = new Set([nodeId]);
   while (queue2.length > 0) {

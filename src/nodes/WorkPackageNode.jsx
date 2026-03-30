@@ -3,8 +3,8 @@ import { Handle, Position } from '@xyflow/react';
 import { STATUS_COLORS } from '../utils/colors';
 import useProjectStore from '../store/useProjectStore';
 
-const PIN_SIZE = 10;
-const NODE_MIN_WIDTH = 240;
+const PIN_SIZE = 8;
+const NODE_MIN_WIDTH = 180;
 
 function InlineEdit({ value, onChange, style, inputStyle: extraInputStyle }) {
   const [editing, setEditing] = useState(false);
@@ -87,12 +87,12 @@ function PinGroup({ nodeId, group, colors, readOnly, isLast }) {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
-          minHeight: rowCount * 22,
-          paddingLeft: PIN_SIZE + 6,
-          paddingRight: 8,
+          minHeight: rowCount * 18,
+          paddingLeft: PIN_SIZE + 4,
+          paddingRight: 6,
         }}>
           <div style={{
-            fontSize: 10,
+            fontSize: 9,
             color: '#d1d5db',
             lineHeight: 1.3,
             wordBreak: 'break-word',
@@ -172,11 +172,11 @@ export default function WorkPackageNode({ id, data, selected }) {
   let handleElements = [];
   let yOffset = 0; // track cumulative offset within the pin area
 
-  // We estimate: header=28, role=16, then each group
-  const headerH = 28;
-  const roleH = 16;
-  const groupPadding = 8; // 4px top + 4px bottom per group
-  const outputRowH = 22; // estimated per output row
+  const [nodeHovered, setNodeHovered] = useState(false);
+  const headerH = 22;
+  const roleH = 14;
+  const groupPadding = 6;
+  const outputRowH = 18;
   const dividerH = 1;
 
   let pinAreaY = headerH + roleH;
@@ -234,29 +234,33 @@ export default function WorkPackageNode({ id, data, selected }) {
     if (gi < groups.length - 1) pinAreaY += dividerH;
   });
 
-  // "New group" drop zone
-  const addZoneH = 24;
-  handleElements.push(
-    <Handle
-      key="new-group"
-      type="target"
-      position={Position.Left}
-      id="new-group"
-      style={{
-        top: pinAreaY + addZoneH / 2,
-        left: -1,
-        background: 'transparent',
-        width: PIN_SIZE,
-        height: PIN_SIZE,
-        borderRadius: '50%',
-        border: '2px dashed #4b5563',
-      }}
-    />
-  );
+  // "New group" drop zone — only visible on hover
+  const addZoneH = nodeHovered ? 20 : 4;
+  if (nodeHovered) {
+    handleElements.push(
+      <Handle
+        key="new-group"
+        type="target"
+        position={Position.Left}
+        id="new-group"
+        style={{
+          top: pinAreaY + addZoneH / 2,
+          left: -1,
+          background: 'transparent',
+          width: PIN_SIZE,
+          height: PIN_SIZE,
+          borderRadius: '50%',
+          border: '2px dashed #4b5563',
+        }}
+      />
+    );
+  }
 
   return (
     <div
       ref={nodeRef}
+      onMouseEnter={() => setNodeHovered(true)}
+      onMouseLeave={() => setNodeHovered(false)}
       style={{
         width: NODE_MIN_WIDTH,
         background: '#1e1e2e',
@@ -285,7 +289,7 @@ export default function WorkPackageNode({ id, data, selected }) {
         <div style={{ flex: 1, overflow: 'hidden' }}>
           {readOnly ? (
             <span style={{
-              fontSize: 11, fontWeight: 700, color: '#fff',
+              fontSize: 10, fontWeight: 700, color: '#fff',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               display: 'block',
             }}>
@@ -296,7 +300,7 @@ export default function WorkPackageNode({ id, data, selected }) {
               value={data.label}
               onChange={(val) => updateNodeData(id, { label: val })}
               style={{
-                fontSize: 11, fontWeight: 700, color: '#fff',
+                fontSize: 10, fontWeight: 700, color: '#fff',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 display: 'block',
               }}
@@ -308,30 +312,32 @@ export default function WorkPackageNode({ id, data, selected }) {
           )}
         </div>
         <span style={{
-          fontSize: 8,
-          color: 'rgba(255,255,255,0.7)',
+          fontSize: 7,
+          color: 'rgba(255,255,255,0.5)',
           marginLeft: 4,
           textTransform: 'uppercase',
           fontWeight: 600,
-          letterSpacing: '0.5px',
           flexShrink: 0,
         }}>
           {data.status}
         </span>
       </div>
 
-      {/* Role subtitle */}
+      {/* Role + stage subtitle */}
       <div style={{
-        fontSize: 9,
+        fontSize: 8,
         color: roleName ? '#6b7280' : '#ef4444',
         fontStyle: roleName ? 'normal' : 'italic',
-        padding: '2px 8px 0',
+        padding: '1px 6px 0',
         height: roleH,
         lineHeight: roleH + 'px',
+        overflow: 'hidden',
+        whiteSpace: 'nowrap',
+        textOverflow: 'ellipsis',
       }}>
         {roleName || 'Unassigned'}
         {data.stage !== undefined && (
-          <span style={{ marginLeft: 6, color: '#4b5563' }}>S{data.stage}</span>
+          <span style={{ marginLeft: 4, color: '#3a3a4e', fontSize: 7 }}>S{data.stage}</span>
         )}
       </div>
 
@@ -349,17 +355,18 @@ export default function WorkPackageNode({ id, data, selected }) {
         ))}
       </div>
 
-      {/* Drop zone hint */}
+      {/* Drop zone hint — hover only */}
       <div style={{
         height: addZoneH,
         display: 'flex',
         alignItems: 'center',
         paddingLeft: PIN_SIZE + 6,
-        fontSize: 9,
+        fontSize: 8,
         color: '#374151',
         fontStyle: 'italic',
+        overflow: 'hidden',
       }}>
-        + new input
+        {nodeHovered && '+ new input'}
       </div>
 
       {/* All handles */}

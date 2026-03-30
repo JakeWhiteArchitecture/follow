@@ -3,7 +3,7 @@ import { Handle, Position } from '@xyflow/react';
 import { STATUS_COLORS } from '../utils/colors';
 import useProjectStore from '../store/useProjectStore';
 
-const PIN_SIZE = 10;
+const PIN_SIZE = 8;
 
 function InlineEdit({ value, onChange, style, inputStyle: extraInputStyle }) {
   const [editing, setEditing] = useState(false);
@@ -60,7 +60,7 @@ export default function CheckpointNode({ id, data, selected }) {
   const isChainGlow = highlighted && selectedNode !== id;
 
   return (
-    <div style={{ position: 'relative', width: 160, height: 72, cursor: 'grab' }}>
+    <div style={{ position: 'relative', width: 140, height: 60, cursor: 'grab' }}>
       <Handle type="target" position={Position.Left} id="input"
         style={{
           background: colors.border, width: PIN_SIZE, height: PIN_SIZE,

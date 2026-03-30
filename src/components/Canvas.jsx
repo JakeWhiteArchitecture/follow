@@ -174,7 +174,7 @@ function EdgeChevron({ side, visible, onClick, label }) {
 }
 
 // Approximate node dimensions for bounding box calculation
-const NODE_DIMS = { workPackage: { w: 240, h: 100 }, decision: { w: 210, h: 90 }, checkpoint: { w: 160, h: 72 } };
+const NODE_DIMS = { workPackage: { w: 180, h: 64 }, decision: { w: 154, h: 64 }, checkpoint: { w: 140, h: 60 } };
 
 function ModuleBackgrounds({ modules, nodes, viewport, onModuleClick }) {
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
@@ -649,7 +649,7 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
       },
     }));
 
-    // Build edges — connect first output of source to first input of target
+    // Build edges — match output by label if specified, else first output
     const newEdges = mod.edges.map((edge) => {
       const srcId = idMap.get(edge.source);
       const tgtId = idMap.get(edge.target);
@@ -660,7 +660,11 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
       let targetHandle = 'input';
       if (srcNode?.data.groups?.length) {
         const g = srcNode.data.groups[0];
-        sourceHandle = `output-${g.id}-${g.outputs[0]?.id}`;
+        // Match by edge label if provided (for decision outputs like "Yes", "No")
+        let matchedOut = edge.label
+          ? g.outputs.find((o) => o.label === edge.label)
+          : null;
+        sourceHandle = `output-${g.id}-${(matchedOut || g.outputs[0])?.id}`;
       }
       if (tgtNode?.data.groups?.length) {
         const g = tgtNode.data.groups[0];
@@ -674,6 +678,7 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
         target: tgtId,
         targetHandle,
         type: 'deletable',
+        data: { loop: edge.loop || false },
       };
     });
 

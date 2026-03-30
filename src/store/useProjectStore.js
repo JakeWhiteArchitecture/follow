@@ -115,6 +115,7 @@ const useProjectStore = create((set, get) => ({
       targetHandle: e.target_handle || 'input',
       animated: true,
       type: 'deletable',
+      data: { loop: e.loop || false },
     }));
 
     set((state) => ({
@@ -160,6 +161,7 @@ const useProjectStore = create((set, get) => ({
       source_handle: e.sourceHandle || 'output',
       target: e.target,
       target_handle: e.targetHandle || 'input',
+      ...(e.data?.loop ? { loop: true } : {}),
     }));
 
     return {

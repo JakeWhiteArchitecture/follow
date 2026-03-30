@@ -3,9 +3,9 @@ import { Handle, Position } from '@xyflow/react';
 import { STATUS_COLORS } from '../utils/colors';
 import useProjectStore from '../store/useProjectStore';
 
-const PIN_SIZE = 10;
-const DIAMOND_SIZE = 90;
-const OUTPUT_ROW_H = 24;
+const PIN_SIZE = 8;
+const DIAMOND_SIZE = 64;
+const OUTPUT_ROW_H = 18;
 
 function InlineEdit({ value, onChange, style, inputStyle: extraInputStyle }) {
   const [editing, setEditing] = useState(false);
@@ -67,8 +67,8 @@ export default function DecisionNode({ id, data, selected }) {
   const groupId = data.groups?.[0]?.id || 'g0';
 
   // Layout: diamond on the left, output labels stacked on the right
-  const outputAreaH = Math.max(DIAMOND_SIZE, outputs.length * OUTPUT_ROW_H + 8);
-  const totalW = DIAMOND_SIZE + 120;
+  const outputAreaH = Math.max(DIAMOND_SIZE, outputs.length * OUTPUT_ROW_H + 6);
+  const totalW = DIAMOND_SIZE + 90;
   const totalH = outputAreaH;
 
   return (
@@ -115,12 +115,12 @@ export default function DecisionNode({ id, data, selected }) {
         pointerEvents: 'none',
       }}>
         <div style={{
-          fontSize: 9,
+          fontSize: 8,
           fontWeight: 700,
           color: colors.border,
           textAlign: 'center',
           lineHeight: 1.2,
-          maxWidth: DIAMOND_SIZE * 0.55,
+          maxWidth: DIAMOND_SIZE * 0.6,
           wordBreak: 'break-word',
           pointerEvents: 'auto',
         }}>
@@ -151,7 +151,7 @@ export default function DecisionNode({ id, data, selected }) {
               alignItems: 'center',
               justifyContent: 'flex-end',
               paddingRight: PIN_SIZE + 6,
-              fontSize: 10,
+              fontSize: 9,
               color: '#d1d5db',
             }}>
               {readOnly ? out.label : (

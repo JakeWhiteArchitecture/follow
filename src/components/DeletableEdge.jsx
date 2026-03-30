@@ -21,7 +21,9 @@ export default function DeletableEdge({
   targetHandleId,
   style = {},
   markerEnd,
+  data,
 }) {
+  const isLoop = data?.loop === true;
   const [hovered, setHovered] = useState(false);
   const [handleHovered, setHandleHovered] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -65,51 +67,59 @@ export default function DeletableEdge({
   const adjustedSourceY = sourceY + srcOffset;
   const adjustedTargetY = targetY + tgtOffset;
 
-  // Build a custom stepped path with a controllable vertical segment position.
-  const midX = (sourceX + targetX) / 2 + edgeOffset;
+  let edgePath, labelX, labelY;
 
-  // Clamp midX with margin
-  const clampedMidX = Math.max(sourceX + 4, Math.min(targetX - 4, midX));
+  if (isLoop) {
+    // Loop edges: curved arc that sweeps below/above to visually indicate a back-edge
+    const sx = sourceX;
+    const sy = adjustedSourceY;
+    const tx = targetX;
+    const ty = adjustedTargetY;
+    // Arc sweeps below both endpoints
+    const dropY = Math.max(sy, ty) + 80 + Math.abs(sx - tx) * 0.15;
+    const cpX1 = sx + 40;
+    const cpX2 = tx - 40;
+    edgePath = `M ${sx} ${sy} C ${cpX1} ${dropY}, ${cpX2} ${dropY}, ${tx} ${ty}`;
+    labelX = (sx + tx) / 2;
+    labelY = dropY - 20;
+  } else {
+    // Standard stepped path with controllable vertical segment
+    const midX = (sourceX + targetX) / 2 + edgeOffset;
+    const clampedMidX = Math.max(sourceX + 4, Math.min(targetX - 4, midX));
 
-  const buildStepPath = () => {
     const sy = adjustedSourceY;
     const ty = adjustedTargetY;
     const sx = sourceX;
     const tx = targetX;
     const mx = clampedMidX;
 
-    // If source and target are at the same Y, go straight
     if (Math.abs(sy - ty) < 1) {
-      return `M ${sx} ${sy} L ${tx} ${ty}`;
+      edgePath = `M ${sx} ${sy} L ${tx} ${ty}`;
+    } else {
+      const halfHoriz1 = Math.abs(mx - sx) / 2;
+      const halfHoriz2 = Math.abs(tx - mx) / 2;
+      const halfVert = Math.abs(ty - sy) / 2;
+      const r = Math.min(8, halfHoriz1, halfHoriz2, halfVert);
+
+      if (r < 1) {
+        edgePath = `M ${sx} ${sy} L ${mx} ${sy} L ${mx} ${ty} L ${tx} ${ty}`;
+      } else {
+        const goingDown = ty > sy;
+        const ry = goingDown ? r : -r;
+        edgePath = [
+          `M ${sx} ${sy}`,
+          `L ${mx - r} ${sy}`,
+          `Q ${mx} ${sy} ${mx} ${sy + ry}`,
+          `L ${mx} ${ty - ry}`,
+          `Q ${mx} ${ty} ${mx + r} ${ty}`,
+          `L ${tx} ${ty}`,
+        ].join(' ');
+      }
     }
 
-    // Clamp radius to fit available space
-    const halfHoriz1 = Math.abs(mx - sx) / 2;
-    const halfHoriz2 = Math.abs(tx - mx) / 2;
-    const halfVert = Math.abs(ty - sy) / 2;
-    const r = Math.min(8, halfHoriz1, halfHoriz2, halfVert);
-
-    if (r < 1) {
-      // Too tight for curves — use straight lines
-      return `M ${sx} ${sy} L ${mx} ${sy} L ${mx} ${ty} L ${tx} ${ty}`;
-    }
-
-    const goingDown = ty > sy;
-    const ry = goingDown ? r : -r;
-
-    return [
-      `M ${sx} ${sy}`,
-      `L ${mx - r} ${sy}`,
-      `Q ${mx} ${sy} ${mx} ${sy + ry}`,
-      `L ${mx} ${ty - ry}`,
-      `Q ${mx} ${ty} ${mx + r} ${ty}`,
-      `L ${tx} ${ty}`,
-    ].join(' ');
-  };
-
-  const edgePath = buildStepPath();
-  const labelX = clampedMidX;
-  const labelY = (adjustedSourceY + adjustedTargetY) / 2;
+    labelX = clampedMidX;
+    labelY = (sy + ty) / 2;
+  }
 
   // Drag the midpoint handle to adjust offset
   const onHandleMouseDown = useCallback((e) => {
@@ -136,7 +146,7 @@ export default function DeletableEdge({
   }, [id, edgeOffset, setEdgeOffset]);
 
   const isGlowing = highlighted && !hovered;
-  let baseStroke = style.stroke || '#38bdf8';
+  let baseStroke = isLoop ? '#a78bfa' : (style.stroke || '#38bdf8'); // purple for loops
   let edgeOpacity = 1;
 
   if (neitherInStage) {
@@ -197,6 +207,7 @@ export default function DeletableEdge({
           ...style,
           stroke: needsGradient ? `url(#${gradientId})` : strokeColor,
           strokeWidth: strokeW,
+          strokeDasharray: isLoop ? '6 4' : 'none',
           opacity: needsGradient ? 1 : edgeOpacity,
           filter: isGlowing ? `url(#glow-${id})` : 'none',
           transition: 'opacity 500ms ease, stroke 0.15s, stroke-width 0.15s',
