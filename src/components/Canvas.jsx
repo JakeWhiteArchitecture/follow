@@ -244,8 +244,7 @@ const megaNumberStyle = {
   userSelect: 'none',
   zIndex: 0,
   transition: 'transform 600ms cubic-bezier(0.4, 0, 0.2, 1), opacity 600ms ease',
-  fontFamily: "Georgia, 'Times New Roman', serif",
-  fontVariantNumeric: 'tabular-nums',
+  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   transformStyle: 'preserve-3d',
   backfaceVisibility: 'hidden',
 };
