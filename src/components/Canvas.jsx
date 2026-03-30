@@ -324,8 +324,8 @@ function MegaStageNumber({ currentStage, stageKeys }) {
     // Going right: both numbers move left. Going left: both move right.
     const exitX = dir === 'right' ? '-150%' : '150%';
     const enterX = dir === 'right' ? '150%' : '-150%';
-    const exitRotY = dir === 'right' ? '-18deg' : '18deg';
-    const enterRotY = dir === 'right' ? '18deg' : '-18deg';
+    const exitRotY = dir === 'right' ? '-30deg' : '30deg';
+    const enterRotY = dir === 'right' ? '30deg' : '-30deg';
     const prevColor = STAGE_COLORS[parseInt(prevStage)] || '#60a5fa';
     const nextColor = STAGE_COLORS[parseInt(nextStage)] || '#60a5fa';
 
