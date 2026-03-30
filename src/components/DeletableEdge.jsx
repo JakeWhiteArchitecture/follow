@@ -66,12 +66,10 @@ export default function DeletableEdge({
   const adjustedTargetY = targetY + tgtOffset;
 
   // Build a custom stepped path with a controllable vertical segment position.
-  // The edgeOffset shifts the X position of the vertical segment.
   const midX = (sourceX + targetX) / 2 + edgeOffset;
-  const r = 8; // border radius
 
-  // Clamp midX so it doesn't go past source or target
-  const clampedMidX = Math.max(sourceX + r * 2, Math.min(targetX - r * 2, midX));
+  // Clamp midX with margin
+  const clampedMidX = Math.max(sourceX + 4, Math.min(targetX - 4, midX));
 
   const buildStepPath = () => {
     const sy = adjustedSourceY;
@@ -80,28 +78,31 @@ export default function DeletableEdge({
     const tx = targetX;
     const mx = clampedMidX;
 
-    // If source and target are at the same Y, just go straight via midX
+    // If source and target are at the same Y, go straight
     if (Math.abs(sy - ty) < 1) {
       return `M ${sx} ${sy} L ${tx} ${ty}`;
     }
 
-    // Direction of vertical turn
+    // Clamp radius to fit available space
+    const halfHoriz1 = Math.abs(mx - sx) / 2;
+    const halfHoriz2 = Math.abs(tx - mx) / 2;
+    const halfVert = Math.abs(ty - sy) / 2;
+    const r = Math.min(8, halfHoriz1, halfHoriz2, halfVert);
+
+    if (r < 1) {
+      // Too tight for curves — use straight lines
+      return `M ${sx} ${sy} L ${mx} ${sy} L ${mx} ${ty} L ${tx} ${ty}`;
+    }
+
     const goingDown = ty > sy;
     const ry = goingDown ? r : -r;
 
-    // Horizontal from source to first bend
-    const h1End = mx - r;
-    // Vertical segment
-    const vEnd = ty - ry;
-    // Horizontal from second bend to target
-    const h2Start = mx + r;
-
     return [
       `M ${sx} ${sy}`,
-      `L ${h1End} ${sy}`,
+      `L ${mx - r} ${sy}`,
       `Q ${mx} ${sy} ${mx} ${sy + ry}`,
-      `L ${mx} ${vEnd}`,
-      `Q ${mx} ${ty} ${h2Start} ${ty}`,
+      `L ${mx} ${ty - ry}`,
+      `Q ${mx} ${ty} ${mx + r} ${ty}`,
       `L ${tx} ${ty}`,
     ].join(' ');
   };
