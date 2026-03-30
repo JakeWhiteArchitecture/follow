@@ -203,26 +203,44 @@ function ModuleBackgrounds({ modules, nodes, viewport, onModuleClick }) {
         const height = (maxY - minY) * viewport.zoom;
 
         return (
-          <div key={mod.id}
-            onClick={(e) => { e.stopPropagation(); onModuleClick(mod); }}
-            style={{
+          <div key={mod.id} style={{
+            position: 'absolute',
+            left, top, width, height,
+            pointerEvents: 'none',
+          }}>
+            {/* Fill — no pointer events */}
+            <div style={{
               position: 'absolute',
-              left, top, width, height,
+              inset: 0,
               background: mod.fill || 'rgba(58,107,82,0.04)',
-              border: `1px solid ${mod.stroke || '#c8c4bc'}`,
               borderRadius: 6,
-              cursor: 'pointer',
-              pointerEvents: 'auto',
-            }}>
-            <span style={{
+            }} />
+            {/* Border — clickable, only the edge strip */}
+            <div
+              onClick={(e) => { e.stopPropagation(); onModuleClick(mod); }}
+              style={{
+                position: 'absolute',
+                inset: -4,
+                border: `5px solid transparent`,
+                borderRadius: 10,
+                cursor: 'pointer',
+                pointerEvents: 'auto',
+                boxShadow: `inset 0 0 0 1px ${mod.stroke || '#c8c4bc'}`,
+              }}
+            />
+            <span
+              onClick={(e) => { e.stopPropagation(); onModuleClick(mod); }}
+              style={{
               position: 'absolute',
               top: 4,
               left: 8,
-              fontSize: 9,
+              fontSize: Math.max(11, 9 / (viewport.zoom || 1)),
               fontWeight: 600,
               color: mod.stroke || '#c8c4bc',
               opacity: 0.8,
               whiteSpace: 'nowrap',
+              cursor: 'pointer',
+              pointerEvents: 'auto',
             }}>
               {mod.label}
             </span>
