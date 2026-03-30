@@ -776,62 +776,112 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
         onClick={() => hasNext && setCurrentStage(parseInt(stageKeys[currentIdx + 1]))}
       />
 
-      {/* Convert to Module button */}
-      {selectedNodeIds.size >= 2 && !readOnly && (
-        <div style={{
-          position: 'absolute',
-          bottom: 24,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 20,
-          display: 'flex',
-          gap: 8,
-          alignItems: 'center',
-        }}>
-          <button
-            onClick={() => {
-              const label = prompt('Module label:');
-              if (!label || !label.trim()) return;
-              addModule({
-                id: `m_${generateId()}`,
-                label: label.trim(),
-                members: [...selectedNodeIds],
-                padding: 40,
-                fill: 'rgba(58,107,82,0.04)',
-                stroke: '#c8c4bc',
-              });
-              setSelectedNodeIds(new Set());
-            }}
-            style={{
-              padding: '8px 16px',
-              background: '#f59e0b',
-              color: '#1e1e2e',
-              border: 'none',
-              borderRadius: 6,
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-            }}
-          >
-            Group as Module ({selectedNodeIds.size} nodes)
-          </button>
-          <button
-            onClick={() => setSelectedNodeIds(new Set())}
-            style={{
-              padding: '8px 12px',
-              background: '#2a2a3e',
-              color: '#9ca3af',
-              border: '1px solid #3a3a4e',
-              borderRadius: 6,
-              fontSize: 12,
-              cursor: 'pointer',
-            }}
+      {/* Module action bar — only show "Group as Module" when nodes are NOT already grouped */}
+      {selectedNodeIds.size >= 2 && !readOnly && (() => {
+        // Check if all selected nodes belong to the same existing module
+        const selectedArr = [...selectedNodeIds];
+        const containingModule = modules.find((m) =>
+          selectedArr.every((nid) => m.members.includes(nid))
+        );
+
+        if (containingModule) {
+          // Already a module — show "Move Module" info, no create button
+          return (
+            <div style={{
+              position: 'absolute',
+              bottom: 24,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 20,
+              display: 'flex',
+              gap: 8,
+              alignItems: 'center',
+            }}>
+              <div style={{
+                padding: '8px 16px',
+                background: '#2a2a3e',
+                color: '#d1d5db',
+                borderRadius: 6,
+                fontSize: 11,
+                border: '1px solid #3a3a4e',
+              }}>
+                {containingModule.label} — drag any node to move group
+              </div>
+              <button
+                onClick={() => setSelectedNodeIds(new Set())}
+                style={{
+                  padding: '8px 12px',
+                  background: '#2a2a3e',
+                  color: '#9ca3af',
+                  border: '1px solid #3a3a4e',
+                  borderRadius: 6,
+                  fontSize: 12,
+                  cursor: 'pointer',
+                }}
+              >
+                Deselect
+              </button>
+            </div>
+          );
+        }
+
+        // Not in a module — offer to create one
+        return (
+          <div style={{
+            position: 'absolute',
+            bottom: 24,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 20,
+            display: 'flex',
+            gap: 8,
+            alignItems: 'center',
+          }}>
+            <button
+              onClick={() => {
+                const label = prompt('Module label:');
+                if (!label || !label.trim()) return;
+                addModule({
+                  id: `m_${generateId()}`,
+                  label: label.trim(),
+                  members: [...selectedNodeIds],
+                  padding: 40,
+                  fill: 'rgba(58,107,82,0.04)',
+                  stroke: '#c8c4bc',
+                });
+                setSelectedNodeIds(new Set());
+              }}
+              style={{
+                padding: '8px 16px',
+                background: '#f59e0b',
+                color: '#1e1e2e',
+                border: 'none',
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+              }}
+            >
+              Group as Module ({selectedNodeIds.size} nodes)
+            </button>
+            <button
+              onClick={() => setSelectedNodeIds(new Set())}
+              style={{
+                padding: '8px 12px',
+                background: '#2a2a3e',
+                color: '#9ca3af',
+                border: '1px solid #3a3a4e',
+                borderRadius: 6,
+                fontSize: 12,
+                cursor: 'pointer',
+              }}
           >
             Cancel
           </button>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
