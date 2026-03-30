@@ -33,7 +33,7 @@ const defaultEdgeOptions = {
 };
 
 // Stage navigation bar with dots
-function StageNav({ currentStage, stages, onSelect }) {
+function StageNav({ currentStage, stages, onSelect, panelOpen }) {
   const stageKeys = Object.keys(stages).sort((a, b) => parseInt(a) - parseInt(b));
   const stageInfo = RIBA_STAGES.find((s) => s.key === String(currentStage));
   const inAppointment = stages[String(currentStage)]?.in_appointment;
@@ -44,7 +44,7 @@ function StageNav({ currentStage, stages, onSelect }) {
       position: 'absolute',
       top: 44,
       left: 0,
-      right: 0,
+      right: panelOpen ? 300 : 0,
       height: 32,
       background: '#16162aee',
       borderBottom: '1px solid #2a2a3e',
@@ -52,6 +52,7 @@ function StageNav({ currentStage, stages, onSelect }) {
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 9,
+      transition: 'right 0.2s ease',
     }}>
       {/* Stage dots */}
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -833,7 +834,7 @@ export default function Canvas() {
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <Toolbar addMode={addMode} setAddMode={setAddMode} onFitView={() => {}} />
-      <StageNav currentStage={currentStage} stages={stages} onSelect={setCurrentStage} />
+      <StageNav currentStage={currentStage} stages={stages} onSelect={setCurrentStage} panelOpen={!!selectedNode || !readOnly} />
 
       <div style={{
         position: 'absolute',
