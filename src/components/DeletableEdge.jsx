@@ -82,14 +82,13 @@ export default function DeletableEdge({
     e.stopPropagation();
     e.preventDefault();
     setDragging(true);
-    dragStartRef.current = { x: e.clientX, startOffset: edgeOffset };
+    const startX = e.clientX;
+    const startOffset = useProjectStore.getState().edgeOffsets[id] || 0;
 
     const onMouseMove = (me) => {
-      const dx = me.clientX - dragStartRef.current.x;
-      // Get the current zoom from the React Flow viewport transform
-      const wrapper = e.target.closest('.react-flow');
-      const zoom = wrapper ? parseFloat(wrapper.querySelector('.react-flow__viewport')?.style?.transform?.match(/scale\(([^)]+)\)/)?.[1] || 1) : 1;
-      setEdgeOffset(id, dragStartRef.current.startOffset + dx / zoom);
+      const dx = me.clientX - startX;
+      const zoom = useProjectStore.getState().canvasZoom || 1;
+      useProjectStore.getState().setEdgeOffset(id, startOffset + dx / zoom);
     };
 
     const onMouseUp = () => {

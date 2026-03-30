@@ -380,7 +380,12 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
   const deselectNode = useProjectStore((s) => s.deselectNode);
   const readOnly = useProjectStore((s) => s.readOnly);
 
-  const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
+  const [viewport, setViewportLocal] = useState({ x: 0, y: 0, zoom: 1 });
+  const handleViewportChange = useCallback((vp) => {
+    setViewportLocal(vp);
+    useProjectStore.setState({ canvasZoom: vp.zoom });
+  }, []);
+  const setViewport = handleViewportChange;
   const [selectedNodeIds, setSelectedNodeIds] = useState(new Set());
   const wrapperRef = useRef(null);
   const connectStartRef = useRef(null);
