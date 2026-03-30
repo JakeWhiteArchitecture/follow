@@ -176,7 +176,7 @@ function EdgeChevron({ side, visible, onClick, label }) {
 // Approximate node dimensions for bounding box calculation
 const NODE_DIMS = { workPackage: { w: 240, h: 100 }, decision: { w: 210, h: 90 }, checkpoint: { w: 160, h: 72 } };
 
-function ModuleBackgrounds({ modules, nodes, viewport }) {
+function ModuleBackgrounds({ modules, nodes, viewport, onModuleClick }) {
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
 
   return (
@@ -185,7 +185,6 @@ function ModuleBackgrounds({ modules, nodes, viewport }) {
         const memberNodes = mod.members.map((id) => nodeMap.get(id)).filter(Boolean);
         if (memberNodes.length === 0) return null;
 
-        // Compute bounding rect
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         memberNodes.forEach((n) => {
           const dims = NODE_DIMS[n.type] || NODE_DIMS.workPackage;
@@ -198,20 +197,23 @@ function ModuleBackgrounds({ modules, nodes, viewport }) {
         const pad = mod.padding || 40;
         minX -= pad; minY -= pad; maxX += pad; maxY += pad;
 
-        // Apply viewport transform
         const left = minX * viewport.zoom + viewport.x;
         const top = minY * viewport.zoom + viewport.y;
         const width = (maxX - minX) * viewport.zoom;
         const height = (maxY - minY) * viewport.zoom;
 
         return (
-          <div key={mod.id} style={{
-            position: 'absolute',
-            left, top, width, height,
-            background: mod.fill || 'rgba(58,107,82,0.04)',
-            border: `1px solid ${mod.stroke || '#c8c4bc'}`,
-            borderRadius: 6,
-          }}>
+          <div key={mod.id}
+            onClick={(e) => { e.stopPropagation(); onModuleClick(mod); }}
+            style={{
+              position: 'absolute',
+              left, top, width, height,
+              background: mod.fill || 'rgba(58,107,82,0.04)',
+              border: `1px solid ${mod.stroke || '#c8c4bc'}`,
+              borderRadius: 6,
+              cursor: 'pointer',
+              pointerEvents: 'auto',
+            }}>
             <span style={{
               position: 'absolute',
               top: 4,
@@ -396,13 +398,15 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
   const connectStartRef = useRef(null);
   const stageKeys = Object.keys(stages).sort((a, b) => parseInt(a) - parseInt(b));
 
-  // All nodes visible — current stage full, others ghosted, shift-selected outlined
+  // All nodes visible — current stage full, others ghosted, multi-selected outlined
+  // Mark nodes as `selected` in React Flow so group dragging works natively
   const stageNodeIds = new Set(nodes.filter((n) => n.data.stage === currentStage).map((n) => n.id));
   const styledNodes = nodes.map((n) => {
     const inStage = stageNodeIds.has(n.id);
     const isMultiSelected = selectedNodeIds.has(n.id);
     return {
       ...n,
+      selected: isMultiSelected,
       style: {
         transition: 'opacity 500ms ease, filter 500ms ease',
         ...(inStage ? { opacity: 1, filter: 'none' } : { opacity: 0.15, filter: 'grayscale(0.7)' }),
@@ -466,8 +470,33 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
     return () => { cancelAnimationFrame(rafId); cancelAnimationFrame(panAnimRef.current); };
   }, [currentStage]);
 
+  // Find all modules a node belongs to
+  const getModulesForNode = useCallback((nodeId) => {
+    return modules.filter((m) => m.members.includes(nodeId));
+  }, [modules]);
+
+  // Select all members of a module
+  const selectModuleMembers = useCallback((mod) => {
+    setSelectedNodeIds(new Set(mod.members));
+  }, []);
+
   const onNodeClick = useCallback((event, node) => {
-    if (event.shiftKey) {
+    if (event.ctrlKey || event.metaKey) {
+      // Ctrl/Cmd+click: select entire module this node belongs to
+      const nodeMods = getModulesForNode(node.id);
+      if (nodeMods.length > 0) {
+        selectModuleMembers(nodeMods[0]);
+      } else {
+        // Not in a module — just toggle in multi-select
+        setSelectedNodeIds((prev) => {
+          const next = new Set(prev);
+          if (next.has(node.id)) next.delete(node.id);
+          else next.add(node.id);
+          return next;
+        });
+      }
+    } else if (event.shiftKey) {
+      // Shift+click: toggle individual node in multi-select
       setSelectedNodeIds((prev) => {
         const next = new Set(prev);
         if (next.has(node.id)) next.delete(node.id);
@@ -478,7 +507,7 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
       setSelectedNodeIds(new Set());
       selectNode(node.id);
     }
-  }, [selectNode]);
+  }, [selectNode, getModulesForNode, selectModuleMembers]);
 
   const onPaneClick = useCallback((event) => {
     if (addMode && !readOnly) {
@@ -707,7 +736,8 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
       </ReactFlow>
 
       {/* Module background rectangles — behind nodes */}
-      <ModuleBackgrounds modules={modules} nodes={nodes} viewport={viewport} />
+      <ModuleBackgrounds modules={modules} nodes={nodes} viewport={viewport}
+        onModuleClick={(mod) => selectModuleMembers(mod)} />
 
       {/* Edge chevrons — appear on hover */}
       <EdgeChevron
