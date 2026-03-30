@@ -97,7 +97,7 @@ export default function SetupScreen({ onInit, onImport }) {
 
   return (
     <div style={styles.container}>
-      <div style={styles.title}>follow</div>
+      <div style={styles.title}>Threadwork</div>
       <div style={styles.subtitle}>Follow the golden thread. Create a new project or import an existing one.</div>
 
       <div style={styles.section}>

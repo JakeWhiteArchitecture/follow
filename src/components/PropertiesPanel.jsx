@@ -2,21 +2,6 @@ import React, { useState, useRef } from 'react';
 import useProjectStore from '../store/useProjectStore';
 import { generateId } from '../utils/id';
 
-const panelStyle = {
-  position: 'absolute',
-  top: 44,
-  right: 0,
-  width: 300,
-  bottom: 0,
-  background: '#16162a',
-  borderLeft: '1px solid #2a2a3e',
-  padding: 16,
-  overflowY: 'auto',
-  zIndex: 10,
-  fontSize: 13,
-  color: '#d1d5db',
-};
-
 const labelStyle = { display: 'block', fontWeight: 600, marginBottom: 4, marginTop: 12, color: '#9ca3af' };
 const inputStyle = {
   width: '100%', padding: '6px 10px', border: '1px solid #3a3a4e',
@@ -29,20 +14,24 @@ const smallBtnStyle = {
   borderRadius: 3, background: '#2a2a3e', cursor: 'pointer', color: '#d1d5db',
 };
 const dangerBtnStyle = { ...smallBtnStyle, color: '#ef4444', border: '1px solid #7f1d1d' };
+const btnStyle = {
+  padding: '6px 12px', fontSize: 11, border: '1px solid #3a3a4e',
+  borderRadius: 4, background: '#2a2a3e', color: '#d1d5db', cursor: 'pointer',
+  whiteSpace: 'nowrap', width: '100%', textAlign: 'center',
+};
+const activeBtnStyle = {
+  ...btnStyle, background: '#3b82f6', color: '#fff', border: '1px solid #3b82f6',
+};
 
 const TYPE_COLORS = { work_package: '#f59e0b', decision: '#3b82f6', checkpoint: '#10b981' };
 
-// Shared module ref for drag-and-drop (avoids re-render during drag)
+// Shared module ref for drag-and-drop
 export const pendingModuleRef = { current: null };
 
 function MiniSchematic({ nodes, edges }) {
-  // BFS to assign depth
   const adj = new Map();
   nodes.forEach((n) => adj.set(n.id, []));
-  edges.forEach((e) => {
-    if (adj.has(e.source)) adj.get(e.source).push(e.target);
-  });
-
+  edges.forEach((e) => { if (adj.has(e.source)) adj.get(e.source).push(e.target); });
   const depths = new Map();
   const entryId = nodes[0]?.id;
   if (entryId) {
@@ -51,39 +40,21 @@ function MiniSchematic({ nodes, edges }) {
     while (queue.length) {
       const cur = queue.shift();
       for (const next of (adj.get(cur) || [])) {
-        if (!depths.has(next)) {
-          depths.set(next, depths.get(cur) + 1);
-          queue.push(next);
-        }
+        if (!depths.has(next)) { depths.set(next, depths.get(cur) + 1); queue.push(next); }
       }
     }
   }
-  // Assign unvisited nodes
   nodes.forEach((n) => { if (!depths.has(n.id)) depths.set(n.id, (Math.max(...depths.values()) || 0) + 1); });
-
-  // Group by depth
   const columns = {};
-  nodes.forEach((n) => {
-    const d = depths.get(n.id) || 0;
-    if (!columns[d]) columns[d] = [];
-    columns[d].push(n);
-  });
-
+  nodes.forEach((n) => { const d = depths.get(n.id) || 0; if (!columns[d]) columns[d] = []; columns[d].push(n); });
   const maxDepth = Math.max(...Object.keys(columns).map(Number), 0);
   const colW = Math.min(60, 260 / (maxDepth + 1));
-
   return (
     <div style={{ display: 'flex', gap: 2, minHeight: 20, overflow: 'hidden' }}>
       {Array.from({ length: maxDepth + 1 }, (_, d) => (
         <div key={d} style={{ display: 'flex', flexDirection: 'column', gap: 2, width: colW }}>
           {(columns[d] || []).map((n) => (
-            <div key={n.id} style={{
-              height: 8,
-              borderRadius: 2,
-              background: TYPE_COLORS[n.type] || '#6b7280',
-              opacity: 0.7,
-              fontSize: 0,
-            }} title={n.label} />
+            <div key={n.id} style={{ height: 8, borderRadius: 2, background: TYPE_COLORS[n.type] || '#6b7280', opacity: 0.7 }} title={n.label} />
           ))}
         </div>
       ))}
@@ -97,23 +68,14 @@ function ModuleImportSection() {
   const [error, setError] = useState('');
 
   const handleParse = () => {
-    setError('');
-    setParsed(null);
+    setError(''); setParsed(null);
     try {
       const obj = JSON.parse(jsonText);
       const mod = obj.module || obj;
-      if (!mod.label || !mod.nodes || !mod.edges) {
-        setError('Missing required fields: label, nodes, edges');
-        return;
-      }
-      if (!mod.stage && mod.stage !== 0) {
-        setError('Missing required field: stage');
-        return;
-      }
+      if (!mod.label || !mod.nodes || !mod.edges) { setError('Missing: label, nodes, edges'); return; }
+      if (!mod.stage && mod.stage !== 0) { setError('Missing: stage'); return; }
       setParsed(mod);
-    } catch {
-      setError('Invalid JSON');
-    }
+    } catch { setError('Invalid JSON'); }
   };
 
   const handleDragStart = (e) => {
@@ -122,60 +84,33 @@ function ModuleImportSection() {
     pendingModuleRef.current = parsed;
   };
 
-  const handleClear = () => {
-    setJsonText('');
-    setParsed(null);
-    setError('');
-    pendingModuleRef.current = null;
-  };
+  const handleClear = () => { setJsonText(''); setParsed(null); setError(''); pendingModuleRef.current = null; };
 
   return (
     <div>
-      <div style={{ fontWeight: 700, fontSize: 13, color: '#e5e7eb', marginBottom: 8 }}>
-        Import Module
-      </div>
+      <div style={{ fontWeight: 600, fontSize: 11, color: '#9ca3af', marginBottom: 6 }}>Import Module</div>
       <textarea
-        style={{
-          ...inputStyle,
-          minHeight: 80,
-          resize: 'vertical',
-          fontSize: 11,
-          fontFamily: 'monospace',
-          border: error ? '1px solid #ef4444' : '1px solid #3a3a4e',
-        }}
-        placeholder='Paste module JSON here...'
+        style={{ ...inputStyle, minHeight: 70, resize: 'vertical', fontSize: 10, fontFamily: 'monospace', border: error ? '1px solid #ef4444' : '1px solid #3a3a4e' }}
+        placeholder='Paste module JSON...'
         value={jsonText}
         onChange={(e) => { setJsonText(e.target.value); setError(''); setParsed(null); }}
       />
       {error && <div style={{ fontSize: 10, color: '#ef4444', marginTop: 4 }}>{error}</div>}
       <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
         <button style={{ ...smallBtnStyle, flex: 1 }} onClick={handleParse}>Parse</button>
-        {jsonText && <button style={{ ...smallBtnStyle }} onClick={handleClear}>Clear</button>}
+        {jsonText && <button style={smallBtnStyle} onClick={handleClear}>Clear</button>}
       </div>
-
       {parsed && (
-        <div
-          draggable
-          onDragStart={handleDragStart}
-          style={{
-            background: '#1e1e2e',
-            border: '1px solid #3a3a4e',
-            borderRadius: 6,
-            padding: 12,
-            cursor: 'grab',
-            marginTop: 8,
-          }}
-        >
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#e5e7eb', marginBottom: 6 }}>
-            {parsed.label}
-          </div>
-          <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 8 }}>
-            Stage {parsed.stage} · {parsed.nodes.length} nodes · {parsed.edges.length} edges
+        <div draggable onDragStart={handleDragStart} style={{
+          background: '#1e1e2e', border: '1px solid #3a3a4e', borderRadius: 6,
+          padding: 10, cursor: 'grab', marginTop: 8,
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#e5e7eb', marginBottom: 4 }}>{parsed.label}</div>
+          <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 6 }}>
+            S{parsed.stage} · {parsed.nodes.length} nodes · {parsed.edges.length} edges
           </div>
           <MiniSchematic nodes={parsed.nodes} edges={parsed.edges} />
-          <div style={{ fontSize: 9, color: '#4b5563', marginTop: 8, textAlign: 'center' }}>
-            Drag onto canvas to place
-          </div>
+          <div style={{ fontSize: 9, color: '#4b5563', marginTop: 6, textAlign: 'center' }}>Drag onto canvas</div>
         </div>
       )}
     </div>
@@ -199,72 +134,49 @@ function NodeProperties() {
 
   const node = nodes.find((n) => n.id === selectedNode);
   if (!node) return null;
-
   const { data } = node;
   const groups = data.groups || [];
-
-  const update = (field, value) => {
-    updateNodeData(node.id, { [field]: value });
-  };
-
-  const handleDelete = () => {
-    if (confirm('Delete this node? This cannot be undone.')) {
-      deleteNode(node.id);
-    }
-  };
-
+  const update = (field, value) => updateNodeData(node.id, { [field]: value });
+  const handleDelete = () => { if (confirm('Delete this node?')) deleteNode(node.id); };
   const hasGroups = data.nodeType === 'work_package' || data.nodeType === 'decision';
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <strong style={{ fontSize: 15 }}>Node Properties</strong>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+        <strong style={{ fontSize: 13 }}>Node Properties</strong>
         <button onClick={deselectNode}
-          style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#6b7280' }}>
-          &times;
-        </button>
+          style={{ background: 'none', border: 'none', fontSize: 16, cursor: 'pointer', color: '#6b7280' }}>&times;</button>
       </div>
-
       <label style={labelStyle}>Label</label>
-      <input style={inputStyle} value={data.label}
-        onChange={(e) => update('label', e.target.value)} disabled={readOnly} />
-
+      <input style={inputStyle} value={data.label} onChange={(e) => update('label', e.target.value)} disabled={readOnly} />
       <label style={labelStyle}>Type</label>
-      <select style={selectStyle} value={data.nodeType}
-        onChange={(e) => update('nodeType', e.target.value)} disabled={readOnly}>
+      <select style={selectStyle} value={data.nodeType} onChange={(e) => update('nodeType', e.target.value)} disabled={readOnly}>
         <option value="work_package">Work Section</option>
         <option value="decision">Decision</option>
         <option value="checkpoint">Checkpoint</option>
       </select>
-
-      <label style={labelStyle}>Assigned Role</label>
-      <select style={selectStyle} value={data.role || ''}
-        onChange={(e) => update('role', e.target.value || null)} disabled={readOnly}>
+      <label style={labelStyle}>Role</label>
+      <select style={selectStyle} value={data.role || ''} onChange={(e) => update('role', e.target.value || null)} disabled={readOnly}>
         <option value="">Unassigned</option>
         {contacts.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.name || c.discipline}{c.org ? ` (${c.org})` : ''}
-          </option>
+          <option key={c.id} value={c.id}>{c.name || c.discipline}{c.org ? ` (${c.org})` : ''}</option>
         ))}
       </select>
-
       <label style={labelStyle}>Status</label>
-      <select style={selectStyle} value={data.status}
-        onChange={(e) => {
-          if (e.target.value === 'complete' && data.status !== 'active') {
-            if (!confirm('Dependencies may not be met. Mark complete anyway?')) return;
-          }
-          update('status', e.target.value);
-        }} disabled={readOnly}>
+      <select style={selectStyle} value={data.status} onChange={(e) => {
+        if (e.target.value === 'complete' && data.status !== 'active') {
+          if (!confirm('Dependencies may not be met. Mark complete anyway?')) return;
+        }
+        update('status', e.target.value);
+      }} disabled={readOnly}>
         <option value="pending">Pending</option>
         <option value="active">Active</option>
         <option value="complete">Complete</option>
         <option value="blocked">Blocked</option>
       </select>
-
       {hasGroups && (
         <>
-          <label style={labelStyle}>Input Groups & Pins</label>
+          <label style={labelStyle}>Pins</label>
           <div style={{ background: '#1e1e2e', border: '1px solid #2a2a3e', borderRadius: 4, padding: 8 }}>
             {groups.map((group, gi) => (
               <div key={group.id} style={{
@@ -274,12 +186,8 @@ function NodeProperties() {
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
                   <span style={{ fontSize: 10, color: '#6b7280', width: 14 }}>IN</span>
-                  <input
-                    style={{ ...inputStyle, padding: '3px 6px', fontSize: 11, flex: 1 }}
-                    value={group.inputLabel}
-                    onChange={(e) => updateGroup(node.id, group.id, { inputLabel: e.target.value })}
-                    disabled={readOnly}
-                  />
+                  <input style={{ ...inputStyle, padding: '3px 6px', fontSize: 11, flex: 1 }}
+                    value={group.inputLabel} onChange={(e) => updateGroup(node.id, group.id, { inputLabel: e.target.value })} disabled={readOnly} />
                   {!readOnly && groups.length > 1 && (
                     <button style={dangerBtnStyle} onClick={() => removeGroup(node.id, group.id)}>&times;</button>
                   )}
@@ -287,71 +195,162 @@ function NodeProperties() {
                 {group.outputs.map((out) => (
                   <div key={out.id} style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 14, marginTop: 2 }}>
                     <span style={{ fontSize: 10, color: '#9ca3af', width: 24 }}>OUT</span>
-                    <input
-                      style={{ ...inputStyle, padding: '3px 6px', fontSize: 11, flex: 1 }}
-                      value={out.label}
-                      onChange={(e) => updateOutput(node.id, group.id, out.id, { label: e.target.value })}
-                      disabled={readOnly}
-                    />
+                    <input style={{ ...inputStyle, padding: '3px 6px', fontSize: 11, flex: 1 }}
+                      value={out.label} onChange={(e) => updateOutput(node.id, group.id, out.id, { label: e.target.value })} disabled={readOnly} />
                     {!readOnly && group.outputs.length > 1 && (
                       <button style={dangerBtnStyle} onClick={() => removeOutput(node.id, group.id, out.id)}>&times;</button>
                     )}
                   </div>
                 ))}
                 {!readOnly && (
-                  <button style={{ ...smallBtnStyle, marginLeft: 14, marginTop: 4 }}
-                    onClick={() => addOutputToGroup(node.id, group.id)}>
-                    + Add output
-                  </button>
+                  <button style={{ ...smallBtnStyle, marginLeft: 14, marginTop: 4 }} onClick={() => addOutputToGroup(node.id, group.id)}>+ output</button>
                 )}
               </div>
             ))}
             {!readOnly && (
-              <button style={{ ...smallBtnStyle, marginTop: 8, width: '100%' }}
-                onClick={() => addGroupToNode(node.id)}>
-                + Add input group
-              </button>
+              <button style={{ ...smallBtnStyle, marginTop: 8, width: '100%' }} onClick={() => addGroupToNode(node.id)}>+ input group</button>
             )}
           </div>
         </>
       )}
-
       <label style={labelStyle}>Notes</label>
-      <textarea style={textareaStyle} value={data.notes || ''}
-        onChange={(e) => update('notes', e.target.value)} disabled={readOnly} />
-
+      <textarea style={textareaStyle} value={data.notes || ''} onChange={(e) => update('notes', e.target.value)} disabled={readOnly} />
       <label style={labelStyle}>Target Date</label>
-      <input style={inputStyle} type="date" value={data.target_date || ''}
-        onChange={(e) => update('target_date', e.target.value || null)} disabled={readOnly} />
-
+      <input style={inputStyle} type="date" value={data.target_date || ''} onChange={(e) => update('target_date', e.target.value || null)} disabled={readOnly} />
       <label style={labelStyle}>Stage</label>
-      <select style={selectStyle} value={data.stage ?? ''}
-        onChange={(e) => update('stage', parseInt(e.target.value))} disabled={readOnly}>
-        {[0,1,2,3,4,5,6,7].map((s) => (
-          <option key={s} value={s}>Stage {s}</option>
-        ))}
+      <select style={selectStyle} value={data.stage ?? ''} onChange={(e) => update('stage', parseInt(e.target.value))} disabled={readOnly}>
+        {[0,1,2,3,4,5,6,7].map((s) => (<option key={s} value={s}>Stage {s}</option>))}
       </select>
-
       {!readOnly && (
         <button onClick={handleDelete} style={{
-          marginTop: 20, padding: '8px 16px',
-          background: '#7f1d1d', color: '#fca5a5', border: '1px solid #991b1b',
-          borderRadius: 4, fontSize: 12, cursor: 'pointer', width: '100%',
-        }}>
-          Delete Node
-        </button>
+          marginTop: 16, padding: '6px 12px', background: '#7f1d1d', color: '#fca5a5',
+          border: '1px solid #991b1b', borderRadius: 4, fontSize: 11, cursor: 'pointer', width: '100%',
+        }}>Delete Node</button>
       )}
     </>
   );
 }
 
-export default function PropertiesPanel() {
+function SettingsSection() {
+  const sidebarSide = useProjectStore((s) => s.sidebarSide);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div style={{ borderTop: '1px solid #2a2a3e', marginTop: 12, paddingTop: 8 }}>
+      <button onClick={() => setOpen(!open)} style={{
+        background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280',
+        fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, padding: 0, width: '100%',
+      }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+        </svg>
+        Settings
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          <label style={{ ...labelStyle, marginTop: 4 }}>Sidebar Position</label>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button style={sidebarSide === 'left' ? activeBtnStyle : btnStyle}
+              onClick={() => useProjectStore.setState({ sidebarSide: 'left' })}>Left</button>
+            <button style={sidebarSide === 'right' ? activeBtnStyle : btnStyle}
+              onClick={() => useProjectStore.setState({ sidebarSide: 'right' })}>Right</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function PropertiesPanel({ addMode, setAddMode }) {
   const selectedNode = useProjectStore((s) => s.selectedNode);
   const readOnly = useProjectStore((s) => s.readOnly);
+  const sidebarSide = useProjectStore((s) => s.sidebarSide);
+  const exportProject = useProjectStore((s) => s.exportProject);
+  const project = useProjectStore((s) => s.project);
 
-  // Always show panel — module import when no node selected, node props when selected
+  const handleExport = () => {
+    const data = exportProject();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${data.project?.name || 'threadwork-project'}.json`.replace(/\s+/g, '-').toLowerCase();
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try { useProjectStore.getState().loadProject(JSON.parse(ev.target.result)); }
+        catch { alert('Invalid JSON file.'); }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
+  const nodeTypes = [
+    { key: 'work_package', label: 'Work Section' },
+    { key: 'decision', label: 'Decision' },
+    { key: 'checkpoint', label: 'Checkpoint' },
+  ];
+
+  const isLeft = sidebarSide === 'left';
+
   return (
-    <div style={panelStyle}>
+    <div style={{
+      position: 'absolute',
+      top: 0,
+      [isLeft ? 'left' : 'right']: 0,
+      width: 280,
+      bottom: 0,
+      background: '#16162a',
+      [isLeft ? 'borderRight' : 'borderLeft']: '1px solid #2a2a3e',
+      padding: '12px 12px',
+      overflowY: 'auto',
+      zIndex: 10,
+      fontSize: 13,
+      color: '#d1d5db',
+    }}>
+      {/* Brand */}
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontWeight: 800, fontSize: 16, color: '#e5e7eb', letterSpacing: '-0.5px' }}>Threadwork</div>
+        <div style={{ fontSize: 10, color: '#4b5563', marginTop: 2 }}>
+          {project.project?.name || 'Untitled project'}
+        </div>
+      </div>
+
+      {/* Add node buttons */}
+      {!readOnly && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Add</div>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            {nodeTypes.map((nt) => (
+              <button key={nt.key}
+                style={addMode === nt.key ? { ...activeBtnStyle, width: 'auto', flex: 1 } : { ...btnStyle, width: 'auto', flex: 1 }}
+                onClick={() => setAddMode(addMode === nt.key ? null : nt.key)}
+              >+ {nt.label}</button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* File operations */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
+        {!readOnly && <button style={btnStyle} onClick={handleImport}>Import</button>}
+        <button style={btnStyle} onClick={handleExport}>Export</button>
+      </div>
+
+      <div style={{ borderTop: '1px solid #2a2a3e', marginBottom: 12 }} />
+
+      {/* Node properties or module import */}
       {selectedNode ? (
         <>
           <NodeProperties />
@@ -365,6 +364,9 @@ export default function PropertiesPanel() {
       ) : (
         !readOnly && <ModuleImportSection />
       )}
+
+      {/* Settings */}
+      <SettingsSection />
     </div>
   );
 }

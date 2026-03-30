@@ -11,7 +11,6 @@ import { generateId } from '../utils/id';
 import WorkPackageNode from '../nodes/WorkPackageNode';
 import DecisionNode from '../nodes/DecisionNode';
 import CheckpointNode from '../nodes/CheckpointNode';
-import Toolbar from './Toolbar';
 import PropertiesPanel, { pendingModuleRef } from './PropertiesPanel';
 import DeletableEdge from './DeletableEdge';
 import { STAGE_COLORS } from '../utils/colors';
@@ -33,30 +32,30 @@ const defaultEdgeOptions = {
 };
 
 // Stage navigation bar with dots
-function StageNav({ currentStage, stages, onSelect, panelOpen }) {
+function StageNav({ currentStage, stages, onSelect }) {
   const stageKeys = Object.keys(stages).sort((a, b) => parseInt(a) - parseInt(b));
   const stageInfo = RIBA_STAGES.find((s) => s.key === String(currentStage));
   const inAppointment = stages[String(currentStage)]?.in_appointment;
   const colorIdx = parseInt(currentStage);
   const stageColor = STAGE_COLORS[colorIdx] || '#60a5fa';
+  const sidebarSide = useProjectStore((s) => s.sidebarSide);
+  const isLeft = sidebarSide === 'left';
 
   return (
     <>
-      {/* Dot bar */}
+      {/* Dot bar — floating, no background */}
       <div style={{
         position: 'absolute',
-        top: 44,
-        left: 0,
-        right: panelOpen ? 300 : 0,
-        height: 24,
-        background: '#16162aee',
-        borderBottom: '1px solid #2a2a3e',
+        top: 10,
+        [isLeft ? 'left' : 'left']: 0,
+        [isLeft ? 'right' : 'right']: 0,
+        height: 20,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 9,
-        transition: 'right 0.2s ease',
-        gap: 12,
+        pointerEvents: 'none',
+        gap: 14,
       }}>
         {stageKeys.map((key) => {
           const isActive = key === String(currentStage);
@@ -76,33 +75,32 @@ function StageNav({ currentStage, stages, onSelect, panelOpen }) {
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 padding: 0,
-                boxShadow: isActive ? `0 0 6px ${STAGE_COLORS[ci] || '#60a5fa'}50` : 'none',
+                pointerEvents: 'auto',
+                boxShadow: isActive ? `0 0 8px ${STAGE_COLORS[ci] || '#60a5fa'}60` : 'none',
               }}
               title={label}
             />
           );
         })}
       </div>
-      {/* Stage label below */}
+      {/* Stage label — floating, no background */}
       <div style={{
         position: 'absolute',
-        top: 68,
+        top: 32,
         left: 0,
-        right: panelOpen ? 300 : 0,
-        height: 20,
+        right: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 8,
         pointerEvents: 'none',
-        transition: 'right 0.2s ease',
       }}>
         <span style={{
           fontSize: 10,
           fontWeight: 600,
           color: inAppointment ? stageColor : '#6b7280',
-          opacity: inAppointment ? 0.7 : 0.4,
-          transition: 'color 0.3s ease',
+          opacity: inAppointment ? 0.5 : 0.3,
+          transition: 'color 0.3s ease, opacity 0.3s ease',
         }}>
           {stageInfo?.label || `Stage ${currentStage}`}
           {!inAppointment && ' — outside appointment'}
@@ -832,18 +830,19 @@ export default function Canvas() {
     return () => window.removeEventListener('keydown', handler);
   }, [deselectNode, stageKeys]);
 
+  const sidebarSide = useProjectStore((s) => s.sidebarSide);
+  const isLeft = sidebarSide === 'left';
+  const panelW = (!readOnly || selectedNode) ? 280 : 0;
+
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-      <Toolbar addMode={addMode} setAddMode={setAddMode} onFitView={() => {}} />
-      <StageNav currentStage={currentStage} stages={stages} onSelect={setCurrentStage} panelOpen={!!selectedNode || !readOnly} />
-
       <div style={{
         position: 'absolute',
-        top: 88, // 44 toolbar + 24 dots + 20 label
-        left: 0,
-        right: (selectedNode || !readOnly) ? 300 : 0,
+        top: 0,
+        left: isLeft ? panelW : 0,
+        right: isLeft ? 0 : panelW,
         bottom: 0,
-        transition: 'right 0.2s ease',
+        transition: 'left 0.2s ease, right 0.2s ease',
       }}>
         <CanvasInner
           key={projectVersion}
@@ -853,24 +852,32 @@ export default function Canvas() {
           setAddMode={setAddMode}
           stages={stages}
         />
+        <StageNav currentStage={currentStage} stages={stages} onSelect={setCurrentStage} />
       </div>
 
-      <PropertiesPanel />
+      <PropertiesPanel addMode={addMode} setAddMode={setAddMode} />
 
       {addMode && (
         <div style={{
           position: 'absolute',
           bottom: 16,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: '#1e40af',
-          color: '#fff',
-          padding: '8px 16px',
-          borderRadius: 6,
-          fontSize: 13,
+          left: isLeft ? panelW : 0,
+          right: isLeft ? 0 : panelW,
+          display: 'flex',
+          justifyContent: 'center',
           zIndex: 20,
+          pointerEvents: 'none',
         }}>
-          Click on the canvas to place a {addMode.replace(/_/g, ' ')}. Press Esc to cancel.
+          <div style={{
+            background: '#1e40af',
+            color: '#fff',
+            padding: '8px 16px',
+            borderRadius: 6,
+            fontSize: 13,
+            pointerEvents: 'auto',
+          }}>
+            Click on the canvas to place a {addMode.replace(/_/g, ' ')}. Press Esc to cancel.
+          </div>
         </div>
       )}
     </div>
