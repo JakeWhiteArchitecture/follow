@@ -38,24 +38,26 @@ function StageNav({ currentStage, stages, onSelect, panelOpen }) {
   const stageInfo = RIBA_STAGES.find((s) => s.key === String(currentStage));
   const inAppointment = stages[String(currentStage)]?.in_appointment;
   const colorIdx = parseInt(currentStage);
+  const stageColor = STAGE_COLORS[colorIdx] || '#60a5fa';
 
   return (
-    <div style={{
-      position: 'absolute',
-      top: 44,
-      left: 0,
-      right: panelOpen ? 300 : 0,
-      height: 32,
-      background: '#16162aee',
-      borderBottom: '1px solid #2a2a3e',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 9,
-      transition: 'right 0.2s ease',
-    }}>
-      {/* Stage dots */}
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+    <>
+      {/* Dot bar */}
+      <div style={{
+        position: 'absolute',
+        top: 44,
+        left: 0,
+        right: panelOpen ? 300 : 0,
+        height: 24,
+        background: '#16162aee',
+        borderBottom: '1px solid #2a2a3e',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 9,
+        transition: 'right 0.2s ease',
+        gap: 12,
+      }}>
         {stageKeys.map((key) => {
           const isActive = key === String(currentStage);
           const isInAppt = stages[key]?.in_appointment;
@@ -66,47 +68,47 @@ function StageNav({ currentStage, stages, onSelect, panelOpen }) {
               key={key}
               onClick={() => onSelect(parseInt(key))}
               style={{
-                height: 22,
-                padding: isActive ? '0 10px' : '0 4px',
-                borderRadius: 11,
-                background: isActive ? (STAGE_COLORS[ci] || '#60a5fa') + '30' : 'transparent',
-                border: isActive ? `1px solid ${STAGE_COLORS[ci] || '#60a5fa'}` : '1px solid transparent',
+                width: isActive ? 10 : 6,
+                height: isActive ? 10 : 6,
+                borderRadius: '50%',
+                background: isActive ? (STAGE_COLORS[ci] || '#60a5fa') : isInAppt ? '#4a4a5e' : '#2a2a3e',
+                border: 'none',
                 cursor: 'pointer',
-                transition: 'all 0.25s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
+                transition: 'all 0.3s ease',
+                padding: 0,
+                boxShadow: isActive ? `0 0 6px ${STAGE_COLORS[ci] || '#60a5fa'}50` : 'none',
               }}
               title={label}
-            >
-              <div style={{
-                width: 6, height: 6, borderRadius: 3,
-                background: isActive ? (STAGE_COLORS[ci] || '#60a5fa') : isInAppt ? '#4a4a5e' : '#2a2a3e',
-                transition: 'background 0.2s ease',
-              }} />
-              {isActive && (
-                <span style={{
-                  fontSize: 10, fontWeight: 600,
-                  color: STAGE_COLORS[ci] || '#d1d5db',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {label}
-                </span>
-              )}
-            </button>
+            />
           );
         })}
       </div>
-
-      {!inAppointment && (
+      {/* Stage label below */}
+      <div style={{
+        position: 'absolute',
+        top: 68,
+        left: 0,
+        right: panelOpen ? 300 : 0,
+        height: 20,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 8,
+        pointerEvents: 'none',
+        transition: 'right 0.2s ease',
+      }}>
         <span style={{
-          position: 'absolute', right: 12,
-          fontSize: 9, color: '#6b7280', fontStyle: 'italic',
+          fontSize: 10,
+          fontWeight: 600,
+          color: inAppointment ? stageColor : '#6b7280',
+          opacity: inAppointment ? 0.7 : 0.4,
+          transition: 'color 0.3s ease',
         }}>
-          outside appointment
+          {stageInfo?.label || `Stage ${currentStage}`}
+          {!inAppointment && ' — outside appointment'}
         </span>
-      )}
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -837,7 +839,7 @@ export default function Canvas() {
 
       <div style={{
         position: 'absolute',
-        top: 76, // 44 toolbar + 32 nav
+        top: 88, // 44 toolbar + 24 dots + 20 label
         left: 0,
         right: (selectedNode || !readOnly) ? 300 : 0,
         bottom: 0,
