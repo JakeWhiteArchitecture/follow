@@ -128,69 +128,43 @@ export default function DeletableEdge({
       labelX = (sx + tx) / 2;
       labelY = sy;
     } else if (needsBypass) {
-      // Determine which node(s) we need to avoid
-      // Use the node whose body is most in the way
-      const blockNodes = [];
-      if ((srcOverlapsTargetY || vertHitsSource) && srcPos) blockNodes.push(srcPos);
-      if ((tgtOverlapSourceY || vertHitsTarget) && tgtPos) blockNodes.push(tgtPos);
-
-      // Compute combined bounding box of all blocking nodes
-      let bMinX = Infinity, bMinY = Infinity, bMaxX = -Infinity, bMaxY = -Infinity;
-      blockNodes.forEach((p) => {
-        bMinX = Math.min(bMinX, p.x);
-        bMinY = Math.min(bMinY, p.y);
-        bMaxX = Math.max(bMaxX, p.x + NODE_W);
-        bMaxY = Math.max(bMaxY, p.y + NODE_H);
-      });
-
       const r = 6;
 
-      // Decide: route above or below the blocking area
-      const srcAboveBlock = sy < (bMinY + bMaxY) / 2;
-      const bypassY = srcAboveBlock
-        ? bMinY - M
-        : bMaxY + M;
+      // Always route to the RIGHT of both nodes (output pins face right)
+      // Go right past the widest node, then up/down, then left into the target input
+      const rightEdge = Math.max(
+        srcPos ? srcPos.x + NODE_W : sx,
+        tgtPos ? tgtPos.x + NODE_W : tx,
+      ) + M;
 
-      // Route outside the blocking nodes' X range
-      const exitX = Math.min(sx, bMinX - M);
-      const enterX = Math.max(tx, bMaxX + M);
+      // Decide above or below
+      const goAbove = sy < ty;
+      const bypassY = goAbove
+        ? Math.min(srcPos ? srcPos.y : sy, tgtPos ? tgtPos.y : ty) - M
+        : Math.max(srcPos ? srcPos.y + NODE_H : sy, tgtPos ? tgtPos.y + NODE_H : ty) + M;
 
-      // Simple 5-segment path: out → up/down → across → down/up → in
-      // Determine if we go left-of-block or right-of-block
-      const goLeft = sx <= bMinX + NODE_W / 2;
-      const sideX = goLeft ? bMinX - M : bMaxX + M;
+      // Path: source → right past nodes → up/down to bypass → left to above target → down/up to target → into target pin
+      const leftOfTarget = (tgtPos ? tgtPos.x : tx) - M;
 
-      const segments = [
+      edgePath = [
         `M ${sx} ${sy}`,
-        `L ${sideX - r} ${sy}`,
-        `Q ${sideX} ${sy} ${sideX} ${sy + (bypassY > sy ? r : -r)}`,
-        `L ${sideX} ${bypassY - (bypassY > sy ? r : -r)}`,
-        `Q ${sideX} ${bypassY} ${sideX + (tx > sideX ? r : -r)} ${bypassY}`,
-      ];
+        // Go right
+        `L ${rightEdge - r} ${sy}`,
+        `Q ${rightEdge} ${sy} ${rightEdge} ${sy + (bypassY > sy ? r : -r)}`,
+        // Vertical to bypass height
+        `L ${rightEdge} ${bypassY - (bypassY > sy ? r : -r)}`,
+        `Q ${rightEdge} ${bypassY} ${rightEdge - r} ${bypassY}`,
+        // Horizontal left to above/below target
+        `L ${leftOfTarget + r} ${bypassY}`,
+        `Q ${leftOfTarget} ${bypassY} ${leftOfTarget} ${bypassY + (ty > bypassY ? r : -r)}`,
+        // Vertical to target height
+        `L ${leftOfTarget} ${ty - (ty > bypassY ? r : -r)}`,
+        `Q ${leftOfTarget} ${ty} ${leftOfTarget + r} ${ty}`,
+        // Into the target pin
+        `L ${tx} ${ty}`,
+      ].join(' ');
 
-      // Now we need to get from (sideX, bypassY) to (tx, ty)
-      // If we need to cross to the other side of the block
-      const otherSideX = goLeft ? bMaxX + M : bMinX - M;
-      if ((goLeft && tx > bMaxX) || (!goLeft && tx < bMinX)) {
-        // Need to cross over the block
-        segments.push(
-          `L ${otherSideX - (tx > sideX ? r : -r)} ${bypassY}`,
-          `Q ${otherSideX} ${bypassY} ${otherSideX} ${bypassY + (ty > bypassY ? r : -r)}`,
-          `L ${otherSideX} ${ty - (ty > bypassY ? r : -r)}`,
-          `Q ${otherSideX} ${ty} ${otherSideX + (tx > otherSideX ? r : -r)} ${ty}`,
-          `L ${tx} ${ty}`,
-        );
-      } else {
-        // Target is on the same side
-        segments.push(
-          `L ${sideX} ${ty - (ty > bypassY ? r : -r)}`,
-          `Q ${sideX} ${ty} ${sideX + (tx > sideX ? r : -r)} ${ty}`,
-          `L ${tx} ${ty}`,
-        );
-      }
-
-      edgePath = segments.join(' ');
-      labelX = sideX;
+      labelX = rightEdge;
       labelY = bypassY;
     } else {
       const halfHoriz1 = Math.abs(mx - sx) / 2;
