@@ -68,7 +68,7 @@ function InlineEdit({ value, onChange, style, inputStyle: extraInputStyle }) {
   );
 }
 
-function PinGroup({ nodeId, group, colors, readOnly, isLast }) {
+function PinGroup({ nodeId, group, colors, readOnly, isLast, flipped }) {
   const updateGroup = useProjectStore((s) => s.updateGroup);
   const updateOutput = useProjectStore((s) => s.updateOutput);
 
@@ -80,7 +80,7 @@ function PinGroup({ nodeId, group, colors, readOnly, isLast }) {
       borderBottom: isLast ? 'none' : '1px solid #374151',
       padding: '4px 0',
     }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', flexDirection: flipped ? 'row-reverse' : 'row', alignItems: 'flex-start' }}>
         {/* Input side */}
         <div style={{
           flex: 1,
@@ -88,8 +88,9 @@ function PinGroup({ nodeId, group, colors, readOnly, isLast }) {
           flexDirection: 'column',
           justifyContent: 'center',
           minHeight: rowCount * 18,
-          paddingLeft: PIN_SIZE + 4,
-          paddingRight: 6,
+          paddingLeft: flipped ? 6 : PIN_SIZE + 4,
+          paddingRight: flipped ? PIN_SIZE + 4 : 6,
+          textAlign: flipped ? 'right' : 'left',
         }}>
           <div style={{
             fontSize: 9,
@@ -114,20 +115,20 @@ function PinGroup({ nodeId, group, colors, readOnly, isLast }) {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          paddingRight: PIN_SIZE + 6,
-          paddingLeft: 8,
+          paddingRight: flipped ? 6 : PIN_SIZE + 6,
+          paddingLeft: flipped ? PIN_SIZE + 6 : 8,
         }}>
           {outputs.map((out) => (
             <div key={out.id} style={{
               fontSize: 10,
               color: '#d1d5db',
-              textAlign: 'right',
+              textAlign: flipped ? 'left' : 'right',
               lineHeight: 1.3,
               wordBreak: 'break-word',
               minHeight: 18,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'flex-end',
+              justifyContent: flipped ? 'flex-start' : 'flex-end',
             }}>
               {readOnly ? (
                 <span>{out.label}</span>
@@ -161,6 +162,9 @@ export default function WorkPackageNode({ id, data, selected }) {
   const isInfoRequest = data.nodeType === 'information_request';
   const groups = data.groups || [];
   const isChainGlow = highlighted && selectedNode !== id;
+  const flipped = data.flipped || false;
+  const inputPos = flipped ? Position.Right : Position.Left;
+  const outputPos = flipped ? Position.Left : Position.Right;
 
   // We use a ref-based approach to measure and position handles after render.
   // Since React Flow handles need to be in the render tree, we calculate
@@ -192,11 +196,11 @@ export default function WorkPackageNode({ id, data, selected }) {
       <Handle
         key={`in-${group.id}`}
         type="target"
-        position={Position.Left}
+        position={inputPos}
         id={`input-${group.id}`}
         style={{
           top: inputCenterY,
-          left: -1,
+          [flipped ? 'right' : 'left']: -1,
           background: colors.border,
           width: PIN_SIZE,
           height: PIN_SIZE,
@@ -214,11 +218,11 @@ export default function WorkPackageNode({ id, data, selected }) {
           <Handle
             key={`out-${group.id}-${out.id}`}
             type="source"
-            position={Position.Right}
+            position={outputPos}
             id={`output-${group.id}-${out.id}`}
             style={{
               top: outY,
-              right: -1,
+              [flipped ? 'left' : 'right']: -1,
               background: colors.border,
               width: PIN_SIZE,
               height: PIN_SIZE,
@@ -241,11 +245,11 @@ export default function WorkPackageNode({ id, data, selected }) {
       <Handle
         key="new-group"
         type="target"
-        position={Position.Left}
+        position={inputPos}
         id="new-group"
         style={{
           top: pinAreaY + addZoneH / 2,
-          left: -1,
+          [flipped ? 'right' : 'left']: -1,
           background: 'transparent',
           width: PIN_SIZE,
           height: PIN_SIZE,
@@ -351,6 +355,7 @@ export default function WorkPackageNode({ id, data, selected }) {
             colors={colors}
             readOnly={readOnly}
             isLast={gi === groups.length - 1}
+            flipped={flipped}
           />
         ))}
       </div>

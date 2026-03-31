@@ -213,65 +213,75 @@ export default function DeletableEdge({
           transition: 'opacity 500ms ease, stroke 0.15s, stroke-width 0.15s',
         }}
       />
-      {/* Midpoint handle — always visible on in-focus edges, enlarges on hover */}
+      {/* Midpoint controls — wrapped in a tall invisible hit area */}
       {isInFocus && !readOnly && (
         <EdgeLabelRenderer>
-          {/* Drag handle — small dot always visible, grows on hover */}
+          {/* Large invisible hover zone centered on midpoint */}
           <div
-            onMouseDown={onHandleMouseDown}
             onMouseEnter={() => { setHandleHovered(true); setHovered(true); }}
             onMouseLeave={() => { if (!dragging) { setHandleHovered(false); setHovered(false); } }}
             style={{
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
               pointerEvents: 'all',
-              width: showControls ? 16 : 8,
-              height: showControls ? 16 : 8,
-              borderRadius: '50%',
-              background: dragging ? '#60a5fa' : showControls ? '#2a2a3e' : '#3a3a4e',
-              border: showControls ? '2px solid #60a5fa' : '1px solid #4a4a5e',
-              cursor: 'ew-resize',
-              zIndex: 5,
-              transition: 'width 0.15s, height 0.15s, background 0.15s, border 0.15s',
-              opacity: showControls ? 1 : 0.6,
+              width: 40,
+              height: 80,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              cursor: 'default',
             }}
-            title="Drag to offset edge route"
-          />
-          {/* Delete button — only on hover, above the handle */}
-          {showControls && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                deleteEdge(id);
-              }}
-              onMouseEnter={() => setHovered(true)}
-              onMouseLeave={() => setHovered(false)}
+          >
+            {/* Delete button — above the handle */}
+            {showControls && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteEdge(id);
+                }}
+                style={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: '50%',
+                  background: '#ef4444',
+                  color: '#fff',
+                  border: '2px solid #23272f',
+                  fontSize: 10,
+                  lineHeight: '10px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+                  flexShrink: 0,
+                }}
+                title="Remove connection"
+              >
+                ×
+              </button>
+            )}
+            {/* Drag handle */}
+            <div
+              onMouseDown={onHandleMouseDown}
               style={{
-                position: 'absolute',
-                transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY - 20}px)`,
-                pointerEvents: 'all',
-                width: 16,
-                height: 16,
+                width: showControls ? 16 : 8,
+                height: showControls ? 16 : 8,
                 borderRadius: '50%',
-                background: '#ef4444',
-                color: '#fff',
-                border: '2px solid #23272f',
-                fontSize: 10,
-                lineHeight: '10px',
-                textAlign: 'center',
-                cursor: 'pointer',
-                padding: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+                background: dragging ? '#60a5fa' : showControls ? '#2a2a3e' : '#3a3a4e',
+                border: showControls ? '2px solid #60a5fa' : '1px solid #4a4a5e',
+                cursor: 'ew-resize',
+                transition: 'width 0.15s, height 0.15s, background 0.15s, border 0.15s',
+                opacity: showControls ? 1 : 0.6,
+                flexShrink: 0,
               }}
-              title="Remove connection"
-            >
-              ×
-            </button>
-          )}
+              title="Drag to offset edge route"
+            />
+          </div>
         </EdgeLabelRenderer>
       )}
     </>

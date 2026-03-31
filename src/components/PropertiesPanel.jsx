@@ -221,9 +221,15 @@ function NodeProperties() {
       <select style={selectStyle} value={data.stage ?? ''} onChange={(e) => update('stage', parseInt(e.target.value))} disabled={readOnly}>
         {[0,1,2,3,4,5,6,7].map((s) => (<option key={s} value={s}>Stage {s}</option>))}
       </select>
+      {!readOnly && hasGroups && (
+        <button onClick={() => update('flipped', !data.flipped)} style={{
+          marginTop: 12, padding: '6px 12px', background: '#2a2a3e', color: '#d1d5db',
+          border: '1px solid #3a3a4e', borderRadius: 4, fontSize: 11, cursor: 'pointer', width: '100%',
+        }}>{data.flipped ? 'Pins: ← In | Out →' : 'Pins: → In | Out ←'} Flip</button>
+      )}
       {!readOnly && (
         <button onClick={handleDelete} style={{
-          marginTop: 16, padding: '6px 12px', background: '#7f1d1d', color: '#fca5a5',
+          marginTop: 8, padding: '6px 12px', background: '#7f1d1d', color: '#fca5a5',
           border: '1px solid #991b1b', borderRadius: 4, fontSize: 11, cursor: 'pointer', width: '100%',
         }}>Delete Node</button>
       )}

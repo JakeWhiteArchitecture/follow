@@ -62,7 +62,7 @@ export default function DecisionNode({ id, data, selected }) {
   const readOnly = useProjectStore((s) => s.readOnly);
   const isChainGlow = highlighted && selectedNode !== id;
 
-  // Decisions have a single group with multiple outputs (Yes/No/etc.)
+  const flipped = data.flipped || false;
   const outputs = data.groups?.[0]?.outputs || [];
   const groupId = data.groups?.[0]?.id || 'g0';
 
@@ -78,11 +78,11 @@ export default function DecisionNode({ id, data, selected }) {
       position: 'relative',
       cursor: 'grab',
     }}>
-      {/* Input handle — left center of diamond */}
-      <Handle type="target" position={Position.Left} id="input"
+      {/* Input handle */}
+      <Handle type="target" position={flipped ? Position.Right : Position.Left} id="input"
         style={{
           background: colors.border, width: PIN_SIZE, height: PIN_SIZE,
-          top: totalH / 2, left: -1, borderRadius: '50%', border: '2px solid #23272f',
+          top: totalH / 2, [flipped ? 'right' : 'left']: -1, borderRadius: '50%', border: '2px solid #23272f',
         }} />
 
       {/* Diamond shape */}
@@ -94,7 +94,7 @@ export default function DecisionNode({ id, data, selected }) {
         transform: 'rotate(45deg)',
         position: 'absolute',
         top: (totalH - DIAMOND_SIZE * 0.75) / 2,
-        left: (DIAMOND_SIZE - DIAMOND_SIZE * 0.75) / 2,
+        [flipped ? 'right' : 'left']: (DIAMOND_SIZE - DIAMOND_SIZE * 0.75) / 2,
         boxShadow: selected
           ? '0 0 0 2px #3b82f6, 0 0 20px rgba(59,130,246,0.5), 0 4px 20px rgba(0,0,0,0.5)'
           : isChainGlow
@@ -106,7 +106,7 @@ export default function DecisionNode({ id, data, selected }) {
       <div style={{
         position: 'absolute',
         top: 0,
-        left: 0,
+        [flipped ? 'right' : 'left']: 0,
         width: DIAMOND_SIZE,
         height: totalH,
         display: 'flex',
@@ -135,11 +135,11 @@ export default function DecisionNode({ id, data, selected }) {
         </div>
       </div>
 
-      {/* Output labels + handles on the right */}
+      {/* Output labels */}
       <div style={{
         position: 'absolute',
         top: (totalH - outputs.length * OUTPUT_ROW_H) / 2,
-        left: DIAMOND_SIZE,
+        [flipped ? 'right' : 'left']: DIAMOND_SIZE,
         width: totalW - DIAMOND_SIZE,
       }}>
         {outputs.map((out, oi) => {
@@ -171,10 +171,10 @@ export default function DecisionNode({ id, data, selected }) {
         const outY = (totalH - outputs.length * OUTPUT_ROW_H) / 2 + oi * OUTPUT_ROW_H + OUTPUT_ROW_H / 2;
         return (
           <Handle key={`out-${out.id}`}
-            type="source" position={Position.Right}
+            type="source" position={flipped ? Position.Left : Position.Right}
             id={`output-${groupId}-${out.id}`}
             style={{
-              top: outY, right: -1,
+              top: outY, [flipped ? 'left' : 'right']: -1,
               background: colors.border, width: PIN_SIZE, height: PIN_SIZE,
               borderRadius: '50%', border: '2px solid #23272f',
             }}
