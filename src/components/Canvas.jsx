@@ -529,6 +529,81 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
     setSelectedNodeIds(new Set(mod.members));
   }, []);
 
+  // Export selected nodes as a reusable module snippet
+  const exportSnippet = useCallback(() => {
+    const selectedArr = [...selectedNodeIds];
+    const selectedSet = new Set(selectedArr);
+    const storeState = useProjectStore.getState();
+
+    // Find the selected nodes
+    const selNodes = storeState.nodes.filter((n) => selectedSet.has(n.id));
+    if (selNodes.length === 0) return;
+
+    // Calculate origin (top-left of bounding box) for relative positions
+    const minX = Math.min(...selNodes.map((n) => n.position.x));
+    const minY = Math.min(...selNodes.map((n) => n.position.y));
+
+    // Build snippet nodes with relative positions
+    const snippetNodes = selNodes.map((n) => ({
+      id: n.id,
+      type: n.data.nodeType,
+      label: n.data.label,
+      role: n.data.role,
+      position: { x: n.position.x - minX, y: n.position.y - minY },
+      inputs: (n.data.groups || []).map((g) => g.inputLabel),
+      outputs: (n.data.groups || []).flatMap((g) => (g.outputs || []).map((o) => o.label)),
+      groups: n.data.groups,
+    }));
+
+    // Find edges between selected nodes
+    const snippetEdges = storeState.edges
+      .filter((e) => selectedSet.has(e.source) && selectedSet.has(e.target))
+      .map((e) => ({
+        source: e.source,
+        target: e.target,
+        source_handle: e.sourceHandle,
+        target_handle: e.targetHandle,
+        ...(e.data?.loop ? { loop: true } : {}),
+      }));
+
+    // Include edge offsets for selected edges
+    const snippetOffsets = {};
+    snippetEdges.forEach((e) => {
+      const key = storeState.edges.find(
+        (se) => se.source === e.source && se.target === e.target &&
+                se.sourceHandle === e.source_handle && se.targetHandle === e.target_handle
+      )?.id;
+      if (key && storeState.edgeOffsets[key]) {
+        snippetOffsets[`${e.source}_${e.target}`] = storeState.edgeOffsets[key];
+      }
+    });
+
+    const label = prompt('Snippet label:');
+    if (!label || !label.trim()) return;
+
+    const snippet = {
+      module: {
+        label: label.trim(),
+        nodes: snippetNodes,
+        edges: snippetEdges,
+        edgeOffsets: Object.keys(snippetOffsets).length > 0 ? snippetOffsets : undefined,
+      },
+    };
+
+    // Copy to clipboard and download
+    const json = JSON.stringify(snippet, null, 2);
+    navigator.clipboard?.writeText(json).catch(() => {});
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${label.trim().replace(/\s+/g, '-').toLowerCase()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    setSelectedNodeIds(new Set());
+  }, [selectedNodeIds]);
+
   const onNodeClick = useCallback((event, node) => {
     if (event.ctrlKey || event.metaKey) {
       // Ctrl/Cmd+click: select entire module this node belongs to
@@ -887,6 +962,21 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
                 {containingModule.label} — drag any node to move group
               </div>
               <button
+                onClick={exportSnippet}
+                style={{
+                  padding: '8px 12px',
+                  background: '#2a2a3e',
+                  color: '#60a5fa',
+                  border: '1px solid #3a3a4e',
+                  borderRadius: 6,
+                  fontSize: 11,
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                Export Snippet
+              </button>
+              <button
                 onClick={() => setSelectedNodeIds(new Set())}
                 style={{
                   padding: '8px 12px',
@@ -943,6 +1033,21 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
               }}
             >
               Group as Module ({selectedNodeIds.size} nodes)
+            </button>
+            <button
+              onClick={exportSnippet}
+              style={{
+                padding: '8px 12px',
+                background: '#2a2a3e',
+                color: '#60a5fa',
+                border: '1px solid #3a3a4e',
+                borderRadius: 6,
+                fontSize: 12,
+                cursor: 'pointer',
+                fontWeight: 600,
+              }}
+            >
+              Export Snippet
             </button>
             <button
               onClick={() => setSelectedNodeIds(new Set())}
