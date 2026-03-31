@@ -48,24 +48,34 @@ export default function DeletableEdge({
   const neitherInStage = !srcInStage && !tgtInStage;
   const isCrossStage = (srcInStage && !tgtInStage) || (!srcInStage && tgtInStage);
 
-  // Pin fan offset for shared handles
+  // Pin fan offset for shared handles — sorted by source/target Y position
   const { srcOffset, tgtOffset } = useMemo(() => {
-    const srcSiblings = edges.filter(
-      (e) => e.source === source && e.sourceHandle === sourceHandleId
-    );
+    // Source fan: edges from the same output pin, sorted by target Y
+    const srcSiblings = edges
+      .filter((e) => e.source === source && e.sourceHandle === sourceHandleId)
+      .sort((a, b) => {
+        const aNode = nodes.find((n) => n.id === a.target);
+        const bNode = nodes.find((n) => n.id === b.target);
+        return (aNode?.position?.y || 0) - (bNode?.position?.y || 0);
+      });
     const srcIdx = srcSiblings.findIndex((e) => e.id === id);
     const srcCount = srcSiblings.length;
     const srcOff = srcCount > 1 ? (srcIdx - (srcCount - 1) / 2) * FAN_SPREAD : 0;
 
-    const tgtSiblings = edges.filter(
-      (e) => e.target === target && e.targetHandle === targetHandleId
-    );
+    // Target fan: edges to the same input pin, sorted by source Y
+    const tgtSiblings = edges
+      .filter((e) => e.target === target && e.targetHandle === targetHandleId)
+      .sort((a, b) => {
+        const aNode = nodes.find((n) => n.id === a.source);
+        const bNode = nodes.find((n) => n.id === b.source);
+        return (aNode?.position?.y || 0) - (bNode?.position?.y || 0);
+      });
     const tgtIdx = tgtSiblings.findIndex((e) => e.id === id);
     const tgtCount = tgtSiblings.length;
     const tgtOff = tgtCount > 1 ? (tgtIdx - (tgtCount - 1) / 2) * FAN_SPREAD : 0;
 
     return { srcOffset: srcOff, tgtOffset: tgtOff };
-  }, [edges, id, source, sourceHandleId, target, targetHandleId]);
+  }, [edges, id, source, sourceHandleId, target, targetHandleId, nodes]);
 
   const adjustedSourceY = sourceY + srcOffset;
   const adjustedTargetY = targetY + tgtOffset;
