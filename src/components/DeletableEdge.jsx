@@ -85,26 +85,44 @@ export default function DeletableEdge({
     labelX = (sx + tx) / 2;
     labelY = dropY - 20;
   } else {
-    // UE Blueprint-style horizontal-tangent cubic Bezier
-    // Control points extend horizontally from pins, scaled by distance
+    // Horizontal-tangent cubic Bezier — control points steer clear of node bodies
     const dx = Math.abs(tx - sx);
     const dy = Math.abs(ty - sy);
-    // Base tangent length: at least 50px, scales with distance
-    const baseTangent = Math.max(50, dx * 0.4, dy * 0.3);
-    // offX adjusts tangent length (positive = longer tangent = wider curve)
+
+    // Get node bounding boxes for clearance
+    const NODE_W = 180;
+    const NODE_H = 80;
+    const CLEARANCE = 30;
+    const srcPos = sourceNode?.position;
+    const tgtPos = targetNode?.position;
+
+    // Source node's right edge + clearance
+    const srcRight = srcPos ? srcPos.x + NODE_W + CLEARANCE : sx + 50;
+    // Target node's left edge - clearance
+    const tgtLeft = tgtPos ? tgtPos.x - CLEARANCE : tx - 50;
+
+    // Control points must extend past node bodies horizontally
+    // cp1 must be at least past the source node's right edge
+    // cp2 must be at least past the target node's left edge
+    const minCp1x = Math.max(srcRight, sx + 40);
+    const minCp2x = Math.min(tgtLeft, tx - 40);
+
+    // Scale tangent with both horizontal and vertical distance
+    const baseTangent = Math.max(60, dx * 0.4, dy * 0.5);
     const tangent = baseTangent + offX;
 
-    const cp1x = sx + tangent;
+    const cp1x = Math.max(minCp1x, sx + tangent);
+    const cp2x = Math.min(minCp2x, tx - tangent);
+
+    // Vertical: control points stay at pin Y level by default
+    // offY biases them to shape the curve
     const cp1y = sy + offY;
-    const cp2x = tx - tangent;
     const cp2y = ty + offY;
 
     edgePath = `M ${sx} ${sy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${tx} ${ty}`;
 
-    // Midpoint of the bezier (approximate for handle placement)
     labelX = (sx + tx) / 2;
     labelY = (sy + ty) / 2 + offY * 0.5;
-    // Single handle at the curve's midpoint — drag X for tangent, Y for curve bias
     handleXPos = { x: labelX, y: labelY };
   }
 
