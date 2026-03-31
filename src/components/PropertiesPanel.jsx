@@ -73,7 +73,7 @@ function ModuleImportSection() {
       const obj = JSON.parse(jsonText);
       const mod = obj.module || obj;
       if (!mod.label || !mod.nodes || !mod.edges) { setError('Missing: label, nodes, edges'); return; }
-      if (!mod.stage && mod.stage !== 0) { setError('Missing: stage'); return; }
+      // stage is optional — will be assigned from current view on drop
       setParsed(mod);
     } catch { setError('Invalid JSON'); }
   };
@@ -107,7 +107,7 @@ function ModuleImportSection() {
         }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#e5e7eb', marginBottom: 4 }}>{parsed.label}</div>
           <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 6 }}>
-            S{parsed.stage} · {parsed.nodes.length} nodes · {parsed.edges.length} edges
+            {parsed.stage !== undefined ? `S${parsed.stage} · ` : ''}{parsed.nodes.length} nodes · {parsed.edges.length} edges
           </div>
           <MiniSchematic nodes={parsed.nodes} edges={parsed.edges} />
           <div style={{ fontSize: 9, color: '#4b5563', marginTop: 6, textAlign: 'center' }}>Drag onto canvas</div>

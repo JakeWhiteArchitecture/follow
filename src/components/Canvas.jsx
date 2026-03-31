@@ -32,7 +32,7 @@ const defaultEdgeOptions = {
 };
 
 // Stage navigation bar with dots
-function StageNav({ currentStage, stages, onSelect }) {
+function StageNav({ currentStage, stages, onSelect, viewAll, onToggleViewAll }) {
   const stageKeys = Object.keys(stages).sort((a, b) => parseInt(a) - parseInt(b));
   const stageInfo = RIBA_STAGES.find((s) => s.key === String(currentStage));
   const inAppointment = stages[String(currentStage)]?.in_appointment;
@@ -98,13 +98,30 @@ function StageNav({ currentStage, stages, onSelect }) {
         <span style={{
           fontSize: 10,
           fontWeight: 600,
-          color: inAppointment ? stageColor : '#6b7280',
-          opacity: inAppointment ? 0.5 : 0.3,
+          color: viewAll ? '#9ca3af' : inAppointment ? stageColor : '#6b7280',
+          opacity: viewAll ? 0.6 : inAppointment ? 0.5 : 0.3,
           transition: 'color 0.3s ease, opacity 0.3s ease',
         }}>
-          {stageInfo?.label || `Stage ${currentStage}`}
-          {!inAppointment && ' — outside appointment'}
+          {viewAll ? 'All Stages' : (stageInfo?.label || `Stage ${currentStage}`)}
+          {!viewAll && !inAppointment && ' — outside appointment'}
         </span>
+        <button
+          onClick={onToggleViewAll}
+          style={{
+            marginLeft: 8,
+            fontSize: 9,
+            color: '#6b7280',
+            background: 'none',
+            border: '1px solid #3a3a4e',
+            borderRadius: 3,
+            padding: '1px 6px',
+            cursor: 'pointer',
+            pointerEvents: 'auto',
+            transition: 'color 0.2s',
+          }}
+        >
+          {viewAll ? 'Filter by Stage' : 'View All'}
+        </button>
       </div>
     </>
   );
@@ -392,7 +409,7 @@ function MegaStageNumber({ currentStage, stageKeys }) {
   );
 }
 
-function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stages }) {
+function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stages, viewAll }) {
   const { fitView, setViewport: setRFViewport, getViewport } = useReactFlow();
   const nodes = useProjectStore((s) => s.nodes);
   const edges = useProjectStore((s) => s.edges);
@@ -425,11 +442,10 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
     selectedArr.every((nid) => m.members.includes(nid))
   );
 
-  // All nodes visible — current stage full, others ghosted
-  // Mark nodes as `selected` in React Flow so group dragging works natively
+  // All nodes visible — current stage full (or all full in viewAll), others ghosted
   const stageNodeIds = new Set(nodes.filter((n) => n.data.stage === currentStage).map((n) => n.id));
   const styledNodes = nodes.map((n) => {
-    const inStage = stageNodeIds.has(n.id);
+    const inStage = viewAll || stageNodeIds.has(n.id);
     const isMultiSelected = selectedNodeIds.has(n.id);
     return {
       ...n,
@@ -438,7 +454,6 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
       style: {
         transition: 'opacity 500ms ease, filter 500ms ease',
         ...(inStage ? { opacity: 1, filter: 'none' } : { opacity: 0.15, filter: 'grayscale(0.7)' }),
-        // Subtle glow for module-move mode, amber outline only for new grouping
         ...(isMultiSelected && isModuleSelected
           ? { boxShadow: '0 0 8px rgba(167,139,250,0.3)' }
           : isMultiSelected
@@ -453,6 +468,7 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
   const isFirstRender = useRef(true);
   const panAnimRef = useRef(null);
   useEffect(() => {
+    if (viewAll) return; // no pan in viewAll mode
     if (isFirstRender.current) {
       isFirstRender.current = false;
       const timer = setTimeout(() => {
@@ -596,6 +612,18 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
     if (!mod) return;
     pendingModuleRef.current = null;
 
+    // Resolve stage: use snippet's stage, or current stage, or prompt in viewAll mode
+    let dropStage = mod.stage;
+    if (dropStage === undefined || dropStage === null) {
+      if (viewAll) {
+        const input = prompt('Which stage should this module be assigned to? (0-7)');
+        if (input === null) return;
+        dropStage = parseInt(input) || 0;
+      } else {
+        dropStage = currentStage;
+      }
+    }
+
     const bounds = wrapperRef.current.getBoundingClientRect();
     const dropX = (e.clientX - bounds.left - viewport.x) / viewport.zoom;
     const dropY = (e.clientY - bounds.top - viewport.y) / viewport.zoom;
@@ -670,7 +698,7 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
       data: {
         label: n.label,
         nodeType: n.type || 'work_package',
-        stage: mod.stage,
+        stage: dropStage,
         role: n.role || null,
         status: 'pending',
         notes: '',
@@ -727,8 +755,8 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
     importModuleNodes(newNodes, newEdges, moduleRecord);
 
     // Switch to the module's stage
-    if (mod.stage !== currentStage) {
-      setCurrentStage(mod.stage);
+    if (dropStage !== currentStage && !viewAll) {
+      setCurrentStage(dropStage);
     }
   }, [viewport, currentStage, setCurrentStage, importModuleNodes]);
 
@@ -742,7 +770,7 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
   return (
     <div ref={wrapperRef} style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', background: '#1a1a2e' }}>
       {/* Mega stage number underlay — sits behind everything */}
-      <MegaStageNumber currentStage={currentStage} stageKeys={stageKeys} />
+      {!viewAll && <MegaStageNumber currentStage={currentStage} stageKeys={stageKeys} />}
 
       <ReactFlow
         nodes={styledNodes}
@@ -948,6 +976,7 @@ export default function Canvas() {
   const firstAppt = stageKeys.find((k) => stages[k]?.in_appointment) || stageKeys[0] || '0';
   const [currentStage, setCurrentStage] = useState(parseInt(firstAppt));
   const [addMode, setAddMode] = useState(null);
+  const [viewAll, setViewAll] = useState(false);
 
   // Reset to first in-appointment stage on project import
   useEffect(() => {
@@ -957,8 +986,8 @@ export default function Canvas() {
 
   // Sync currentStage to store so edge components can read it
   useEffect(() => {
-    useProjectStore.setState({ currentStage });
-  }, [currentStage]);
+    useProjectStore.setState({ currentStage, viewAll });
+  }, [currentStage, viewAll]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -1005,8 +1034,9 @@ export default function Canvas() {
           addMode={addMode}
           setAddMode={setAddMode}
           stages={stages}
+          viewAll={viewAll}
         />
-        <StageNav currentStage={currentStage} stages={stages} onSelect={setCurrentStage} />
+        <StageNav currentStage={currentStage} stages={stages} onSelect={(s) => { setViewAll(false); setCurrentStage(s); }} viewAll={viewAll} onToggleViewAll={() => setViewAll(!viewAll)} />
       </div>
 
       <PropertiesPanel addMode={addMode} setAddMode={setAddMode} />

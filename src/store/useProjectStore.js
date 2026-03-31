@@ -41,6 +41,7 @@ const useProjectStore = create((set, get) => ({
   highlightedNodes: new Set(),
   highlightedEdges: new Set(),
   currentStage: 0,
+  viewAll: false,
   canvasZoom: 1,
   sidebarSide: 'right', // 'left' | 'right'
   projectVersion: 0,

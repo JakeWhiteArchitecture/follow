@@ -35,13 +35,14 @@ export default function DeletableEdge({
   const edges = useProjectStore((s) => s.edges);
   const edgeOffset = useProjectStore((s) => s.edgeOffsets[id] || 0);
   const currentStage = useProjectStore((s) => s.currentStage);
+  const isViewAll = useProjectStore((s) => s.viewAll);
   const nodes = useProjectStore((s) => s.nodes);
 
   // Stage focus
   const sourceNode = useMemo(() => nodes.find((n) => n.id === source), [nodes, source]);
   const targetNode = useMemo(() => nodes.find((n) => n.id === target), [nodes, target]);
-  const srcInStage = sourceNode?.data?.stage === currentStage;
-  const tgtInStage = targetNode?.data?.stage === currentStage;
+  const srcInStage = isViewAll || sourceNode?.data?.stage === currentStage;
+  const tgtInStage = isViewAll || targetNode?.data?.stage === currentStage;
   const neitherInStage = !srcInStage && !tgtInStage;
   const isCrossStage = (srcInStage && !tgtInStage) || (!srcInStage && tgtInStage);
 
