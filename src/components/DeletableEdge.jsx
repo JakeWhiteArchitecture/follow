@@ -178,14 +178,16 @@ export default function DeletableEdge({
       handleXPos = { x: midX, y: (sy + ty) / 2 };
     } else {
       // STACKED/BEHIND: target is below/above or overlapping
-      // U-shape: right → down/up → left → down/up → right into target
-      const rightX = Math.max(
-        srcPos ? srcPos.x + NODE_W : sx,
-        tgtPos ? tgtPos.x + NODE_W : tx,
-      ) + MARGIN + offX;
+      // Route LEFT of both nodes, through the gap between them
 
-      // Go above or below — route BETWEEN the nodes if possible,
-      // otherwise go around the outside
+      // Vertical segment X: left of the leftmost node edge
+      const leftmost = Math.min(
+        srcPos ? srcPos.x : sx,
+        tgtPos ? tgtPos.x : tx,
+      );
+      const vertX = leftmost - MARGIN + offX;
+
+      // Horizontal channel Y: between the two nodes
       const srcBot = srcPos ? srcPos.y + NODE_H : sy;
       const tgtTop = tgtPos ? tgtPos.y : ty;
       const srcTop = srcPos ? srcPos.y : sy;
@@ -193,28 +195,19 @@ export default function DeletableEdge({
 
       let midY;
       if (sy < ty) {
-        // Source above target — route between them or below both
-        const gapBetween = tgtTop - srcBot;
-        midY = gapBetween > MARGIN * 2
-          ? (srcBot + tgtTop) / 2 + offY  // route through the gap
-          : Math.max(srcBot, tgtBot) + MARGIN + offY; // route below both
+        // Source above target
+        midY = (srcBot + tgtTop) / 2 + offY;
       } else {
-        // Source below target — route between them or above both
-        const gapBetween = srcTop - tgtBot;
-        midY = gapBetween > MARGIN * 2
-          ? (tgtBot + srcTop) / 2 + offY  // route through the gap
-          : Math.min(srcTop, tgtTop) - MARGIN + offY; // route above both
+        // Source below target
+        midY = (tgtBot + srcTop) / 2 + offY;
       }
-
-      const leftX = (tgtPos ? tgtPos.x : tx) - MARGIN;
 
       const points = [
         { x: sx, y: sy },
-        { x: rightX, y: sy },   // go right past both nodes
-        { x: rightX, y: midY }, // vertical to the routing channel
-        { x: leftX, y: midY },  // horizontal across to above/below target
-        { x: leftX, y: ty },    // vertical to target pin height
-        { x: tx, y: ty },       // into the target pin
+        { x: vertX, y: sy },     // go left past both nodes
+        { x: vertX, y: midY },   // vertical to the channel
+        { x: tx, y: midY },      // horizontal across to target X
+        { x: tx, y: ty },        // vertical to target pin
       ];
       edgePath = buildPath(points);
       labelX = rightX;
