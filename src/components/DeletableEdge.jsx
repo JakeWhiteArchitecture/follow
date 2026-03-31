@@ -143,10 +143,17 @@ export default function DeletableEdge({
     const srcRight = srcPos ? srcPos.x + NODE_W : sx;
     const tgtLeft = tgtPos ? tgtPos.x : tx;
 
-    if (dx > 0) {
-      // Target pin is to the right of source pin — use Z-path
-      // NORMAL FLOW: target is to the right
-      // Simple Z-shape: horizontal → vertical → horizontal
+    // Check if nodes are vertically stacked with a clear vertical gap
+    // (even if target pin is left of source pin, a Z-path through the gap works)
+    const srcBot = srcPos ? srcPos.y + NODE_H : sy;
+    const tgtTop = tgtPos ? tgtPos.y : ty;
+    const srcTop = srcPos ? srcPos.y : sy;
+    const tgtBot = tgtPos ? tgtPos.y + NODE_H : ty;
+    const verticalGap = sy < ty ? (tgtTop - srcBot) : (srcTop - tgtBot);
+    const nodesVerticallyStacked = verticalGap > -20; // allow some overlap
+
+    if (dx > 0 || (dx <= 0 && nodesVerticallyStacked && Math.abs(dx) < NODE_W)) {
+      // Z-PATH: target is to the right OR nodes are stacked vertically
       const GAP = 20;
 
       // Available gap between the two nodes
