@@ -85,31 +85,80 @@ export default function DeletableEdge({
     labelX = (sx + tx) / 2;
     labelY = dropY - 20;
   } else {
-    // Clean cubic Bezier — horizontal tangents, no obstacle avoidance
-    // Same approach as UE Blueprint, Blender, Substance Designer
+    // Cubic Bezier with source+target node body avoidance
+    const NODE_W = 180;
+    const NODE_H = 100;
+    const CLEAR = 25;
+    const srcPos = sourceNode?.position;
+    const tgtPos = targetNode?.position;
+
     const dx = tx - sx;
     const absDx = Math.abs(dx);
     const absDy = Math.abs(ty - sy);
 
-    // Tangent length scales with distance — longer gaps get wider curves
+    // Base tangent — scales with distance
     const baseTangent = Math.max(40, absDx * 0.35, absDy * 0.2) + offX;
 
-    // When target is behind or directly below the source,
-    // both CPs push right so the curve doesn't fold backwards
+    // Horizontal control points
     let cp1x, cp2x;
     if (dx > 80) {
-      // Normal left-to-right flow
       cp1x = sx + baseTangent;
       cp2x = tx - baseTangent;
     } else {
-      // Target is close/behind — both CPs go right
       const pushRight = Math.max(baseTangent, 80 - dx);
       cp1x = sx + pushRight;
       cp2x = tx + pushRight;
     }
 
-    const cp1y = sy + offY;
-    const cp2y = ty + offY;
+    // Vertical control points — start at pin Y
+    let cp1y = sy;
+    let cp2y = ty;
+
+    // SOURCE-SIDE: if the outgoing tangent ray would pass through
+    // the TARGET node body, angle cp1y to clear it
+    if (tgtPos) {
+      const tTop = tgtPos.y - CLEAR;
+      const tBot = tgtPos.y + NODE_H + CLEAR;
+      // Is the source pin Y within the target node's vertical extent?
+      if (sy > tTop && sy < tBot) {
+        // Angle away from the target node center
+        cp1y = sy < tgtPos.y + NODE_H / 2 ? tTop : tBot;
+      }
+    }
+
+    // TARGET-SIDE: if the incoming tangent ray would pass through
+    // the SOURCE node body, angle cp2y to clear it
+    if (srcPos) {
+      const sTop = srcPos.y - CLEAR;
+      const sBot = srcPos.y + NODE_H + CLEAR;
+      // Is the target pin Y within the source node's vertical extent?
+      if (ty > sTop && ty < sBot) {
+        // Angle away from the source node center
+        cp2y = ty < srcPos.y + NODE_H / 2 ? sTop : sBot;
+      }
+    }
+
+    // TARGET-SIDE: when the curve comes from far away and cp2 is pushed
+    // right of the target (stacked layout), the Bezier re-enters through
+    // the target body. Angle cp2y so the curve approaches from the side
+    // the SOURCE is on — above if source is above, below if source is below.
+    if (tgtPos && cp2x > tgtPos.x + CLEAR) {
+      const tTop = tgtPos.y - CLEAR;
+      const tBot = tgtPos.y + NODE_H + CLEAR;
+      // The curve is coming FROM the source — approach from that direction
+      cp2y = sy < tgtPos.y + NODE_H / 2 ? tTop : tBot;
+    }
+
+    // SOURCE-SIDE: same check in reverse — if cp1 is still within source body
+    if (srcPos && cp1y > srcPos.y - CLEAR && cp1y < srcPos.y + NODE_H + CLEAR && cp1y !== sy) {
+      const sTop = srcPos.y - CLEAR;
+      const sBot = srcPos.y + NODE_H + CLEAR;
+      cp1y = ty < srcPos.y + NODE_H / 2 ? sTop : sBot;
+    }
+
+    // Apply user Y offset on top
+    cp1y += offY;
+    cp2y += offY;
 
     edgePath = `M ${sx} ${sy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${tx} ${ty}`;
 
