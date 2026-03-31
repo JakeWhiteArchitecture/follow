@@ -153,15 +153,17 @@ export default function DeletableEdge({
       const gapStart = srcRight + GAP;
       const gapEnd = tgtLeft - GAP;
 
-      // Default midX is centered in the gap, adjusted by offsets
+      // Default midX: prefer the gap between node edges
+      // When gap is tight or nodes overlap, place midX just left of the target node
       let midX;
       if (gapEnd > gapStart) {
-        // There's a gap — place midX within it
+        // Clear gap — place midX within it
         const gapCenter = (gapStart + gapEnd) / 2;
         midX = Math.max(gapStart, Math.min(gapEnd, gapCenter + offX + verticalSpread));
       } else {
-        // Nodes are very close or overlapping — use the midpoint between them
-        midX = (srcRight + tgtLeft) / 2 + verticalSpread;
+        // Tight or overlapping — place midX just left of the leftmost node edge
+        const leftmost = Math.min(srcPos ? srcPos.x : sx, tgtPos ? tgtPos.x : tx);
+        midX = leftmost - MARGIN + offX + verticalSpread;
       }
 
       const points = [
