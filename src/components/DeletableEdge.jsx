@@ -85,68 +85,77 @@ export default function DeletableEdge({
     labelX = (sx + tx) / 2;
     labelY = dropY - 20;
   } else {
-    // Cubic Bezier with overlap-aware tangent angles
+    // Cubic Bezier — always horizontal tangents, with node-aware adjustments
     const NODE_W = 180;
-    const NODE_H = 80;
+    const NODE_H = 100; // generous estimate
     const CLEAR = 30;
     const srcPos = sourceNode?.position;
     const tgtPos = targetNode?.position;
 
     const dx = tx - sx;
-    const dy = ty - sy;
     const absDx = Math.abs(dx);
-    const absDy = Math.abs(dy);
+    const absDy = Math.abs(ty - sy);
 
-    // Base tangent length — scales with distance
-    const baseTangent = Math.max(50, absDx * 0.4, absDy * 0.25) + offX;
+    // Base tangent — always positive, scales smoothly
+    const baseTangent = Math.max(50, absDx * 0.4, absDy * 0.3) + offX;
 
-    // Start with horizontal tangents
+    // Start with horizontal control points
     let cp1x = sx + baseTangent;
     let cp1y = sy;
     let cp2x = tx - baseTangent;
     let cp2y = ty;
 
-    // Check if the TARGET node body overlaps the outgoing tangent path from source
-    // (i.e. target node is near the source pin horizontally)
-    if (tgtPos) {
-      const tgtTop = tgtPos.y - CLEAR;
-      const tgtBot = tgtPos.y + NODE_H + CLEAR;
-      const tgtLft = tgtPos.x - CLEAR;
-      const tgtRgt = tgtPos.x + NODE_W + CLEAR;
+    // When target is not clearly to the right, both CPs must go right
+    // of both nodes to prevent the curve from inverting
+    if (dx < NODE_W) {
+      const rightOf = Math.max(
+        srcPos ? srcPos.x + NODE_W + CLEAR : sx + baseTangent,
+        tgtPos ? tgtPos.x + NODE_W + CLEAR : tx + baseTangent,
+      );
+      cp1x = Math.max(cp1x, rightOf + offX);
+      cp2x = Math.max(cp2x, rightOf + offX);
+    }
 
-      // Does the outgoing horizontal ray from source pass through target body?
-      if (sy > tgtTop && sy < tgtBot && cp1x > tgtLft) {
-        // Angle the outgoing tangent away from the target node
+    // --- Tangent angle adjustments to steer clear of node bodies ---
+
+    // Check if outgoing tangent (horizontal from source) passes through TARGET node
+    if (tgtPos && sy > tgtPos.y - CLEAR && sy < tgtPos.y + NODE_H + CLEAR) {
+      // Source pin Y is within target node's Y range — angle away
+      if (cp1x > tgtPos.x - CLEAR) {
         cp1y = sy < tgtPos.y + NODE_H / 2
-          ? tgtTop  // go above
-          : tgtBot; // go below
+          ? tgtPos.y - CLEAR   // angle up
+          : tgtPos.y + NODE_H + CLEAR; // angle down
       }
     }
 
-    // Check if the SOURCE node body overlaps the incoming tangent path to target
-    if (srcPos) {
-      const srcTop = srcPos.y - CLEAR;
-      const srcBot = srcPos.y + NODE_H + CLEAR;
-      const srcLft = srcPos.x - CLEAR;
-      const srcRgt = srcPos.x + NODE_W + CLEAR;
+    // Check if outgoing tangent passes through SOURCE node (when wrapping back)
+    if (srcPos && cp1y !== sy) {
+      // Already angled — skip
+    } else if (srcPos && dx < 0 && sy > srcPos.y - CLEAR && sy < srcPos.y + NODE_H + CLEAR) {
+      cp1y = sy < srcPos.y + NODE_H / 2
+        ? srcPos.y - CLEAR
+        : srcPos.y + NODE_H + CLEAR;
+    }
 
-      // Does the incoming horizontal ray to target pass through source body?
-      if (ty > srcTop && ty < srcBot && cp2x < srcRgt) {
-        // Angle the incoming tangent away from the source node
+    // Check if incoming tangent (horizontal to target) passes through SOURCE node
+    if (srcPos && ty > srcPos.y - CLEAR && ty < srcPos.y + NODE_H + CLEAR) {
+      if (cp2x > srcPos.x - CLEAR || cp2x < srcPos.x + NODE_W + CLEAR) {
         cp2y = ty < srcPos.y + NODE_H / 2
-          ? srcTop  // approach from above
-          : srcBot; // approach from below
+          ? srcPos.y - CLEAR
+          : srcPos.y + NODE_H + CLEAR;
       }
     }
 
-    // When target is behind/below source, push control points right of both nodes
-    if (dx < NODE_W * 0.5) {
-      const rightEdge = Math.max(
-        srcPos ? srcPos.x + NODE_W + CLEAR : sx + 60,
-        tgtPos ? tgtPos.x + NODE_W + CLEAR : tx + 60,
-      ) + offX;
-      cp1x = Math.max(cp1x, rightEdge);
-      cp2x = Math.max(cp2x, rightEdge);
+    // Check if incoming tangent passes through TARGET node body
+    // (when the CP is pushed right of the target, the curve re-enters through the body)
+    if (tgtPos && cp2x > tgtPos.x + NODE_W) {
+      // CP2 is to the right of the target — curve will sweep back left through it
+      // Angle CP2 vertically to approach from above or below
+      if (cp2y >= tgtPos.y - CLEAR && cp2y <= tgtPos.y + NODE_H + CLEAR) {
+        cp2y = ty < tgtPos.y + NODE_H / 2
+          ? tgtPos.y - CLEAR
+          : tgtPos.y + NODE_H + CLEAR;
+      }
     }
 
     // Apply user Y offset
@@ -155,8 +164,8 @@ export default function DeletableEdge({
 
     edgePath = `M ${sx} ${sy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${tx} ${ty}`;
 
-    labelX = (sx + tx) / 2 + (dx < NODE_W * 0.5 ? 40 : 0);
-    labelY = (sy + ty) / 2 + offY * 0.5;
+    labelX = (sx + cp1x + cp2x + tx) / 4;
+    labelY = (sy + cp1y + cp2y + ty) / 4;
     handleXPos = { x: labelX, y: labelY };
   }
 
