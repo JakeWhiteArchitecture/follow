@@ -143,7 +143,8 @@ export default function DeletableEdge({
     const srcRight = srcPos ? srcPos.x + NODE_W : sx;
     const tgtLeft = tgtPos ? tgtPos.x : tx;
 
-    if (dx > 30) {
+    if (dx > 0) {
+      // Target pin is to the right of source pin — use Z-path
       // NORMAL FLOW: target is to the right
       // Simple Z-shape: horizontal → vertical → horizontal
       const GAP = 20;
