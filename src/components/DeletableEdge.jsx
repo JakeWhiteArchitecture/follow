@@ -202,8 +202,9 @@ export default function DeletableEdge({
         midY = (tgtBot + srcTop) / 2 + offY;
       }
 
-      // Exit stub: output pin faces RIGHT, so go right first before turning
-      const stubX = sx + MARGIN;
+      // Exit stub: must clear the source node's right edge
+      const srcRightEdge = srcPos ? srcPos.x + NODE_W + MARGIN : sx + MARGIN;
+      const stubX = Math.max(sx + MARGIN, srcRightEdge);
 
       const points = [
         { x: sx, y: sy },
