@@ -85,7 +85,7 @@ export default function DeletableEdge({
     labelX = (sx + tx) / 2;
     labelY = dropY - 20;
   } else {
-    // Cubic Bezier with source+target node body avoidance
+    // Edge routing with adaptive complexity
     const NODE_W = 180;
     const NODE_H = 100;
     const CLEAR = 25;
@@ -96,75 +96,80 @@ export default function DeletableEdge({
     const absDx = Math.abs(dx);
     const absDy = Math.abs(ty - sy);
 
-    // Base tangent — scales with distance
-    const baseTangent = Math.max(40, absDx * 0.35, absDy * 0.2) + offX;
+    // Do the source and target nodes overlap vertically?
+    // (their Y ranges intersect — stacked layout)
+    const nodesOverlapVertically = srcPos && tgtPos && (
+      srcPos.y < tgtPos.y + NODE_H + CLEAR &&
+      srcPos.y + NODE_H + CLEAR > tgtPos.y &&
+      absDx < NODE_W * 1.5
+    );
 
-    // Horizontal control points
-    let cp1x, cp2x;
-    if (dx > 80) {
-      cp1x = sx + baseTangent;
-      cp2x = tx - baseTangent;
+    if (nodesOverlapVertically) {
+      // --- MULTI-SEGMENT: route with a waypoint to go around both nodes ---
+      // Path: source → right → above/below both → left → into target
+      // Uses two chained cubic beziers with a waypoint between them
+
+      // Find the right edge — clear of both nodes
+      const rightX = Math.max(
+        srcPos.x + NODE_W,
+        tgtPos.x + NODE_W,
+      ) + CLEAR + 40 + offX;
+
+      // Waypoint Y — above or below both nodes
+      const topOfBoth = Math.min(srcPos.y, tgtPos.y) - CLEAR - 20;
+      const botOfBoth = Math.max(srcPos.y + NODE_H, tgtPos.y + NODE_H) + CLEAR + 20;
+      const goAbove = sy <= ty; // if source is above target, route above
+      const waypointY = (goAbove ? topOfBoth : botOfBoth) + offY;
+
+      // Waypoint X — to the right, past both nodes
+      const waypointX = rightX;
+
+      // Two cubic segments chained at the waypoint
+      // Segment 1: source pin → waypoint (exits right, curves to waypoint)
+      const t1 = Math.max(30, absDx * 0.3);
+      const cp1x = sx + t1;
+      const cp1y = sy;
+      const cp2x = waypointX;
+      const cp2y = sy; // approach waypoint horizontally from the left
+
+      // Segment 2: waypoint → target pin (leaves waypoint, curves into target)
+      const cp3x = waypointX;
+      const cp3y = ty; // leave waypoint heading toward target Y
+      const cp4x = tx - t1;
+      const cp4y = ty;
+
+      edgePath = [
+        `M ${sx} ${sy}`,
+        `C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${waypointX} ${waypointY}`,
+        `C ${cp3x} ${cp3y}, ${cp4x} ${cp4y}, ${tx} ${ty}`,
+      ].join(' ');
+
+      labelX = waypointX;
+      labelY = waypointY;
+      handleXPos = { x: (sx + tx) / 2, y: waypointY };
     } else {
-      const pushRight = Math.max(baseTangent, 80 - dx);
-      cp1x = sx + pushRight;
-      cp2x = tx + pushRight;
-    }
+      // --- SIMPLE: standard 2-control-point Bezier ---
+      const baseTangent = Math.max(40, absDx * 0.35, absDy * 0.2) + offX;
 
-    // Vertical control points — start at pin Y
-    let cp1y = sy;
-    let cp2y = ty;
-
-    // SOURCE-SIDE: if the outgoing tangent ray would pass through
-    // the TARGET node body, angle cp1y to clear it
-    if (tgtPos) {
-      const tTop = tgtPos.y - CLEAR;
-      const tBot = tgtPos.y + NODE_H + CLEAR;
-      // Is the source pin Y within the target node's vertical extent?
-      if (sy > tTop && sy < tBot) {
-        // Angle away from the target node center
-        cp1y = sy < tgtPos.y + NODE_H / 2 ? tTop : tBot;
+      let cp1x, cp2x;
+      if (dx > 80) {
+        cp1x = sx + baseTangent;
+        cp2x = tx - baseTangent;
+      } else {
+        const pushRight = Math.max(baseTangent, 80 - dx);
+        cp1x = sx + pushRight;
+        cp2x = tx + pushRight;
       }
+
+      let cp1y = sy + offY;
+      let cp2y = ty + offY;
+
+      edgePath = `M ${sx} ${sy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${tx} ${ty}`;
+
+      labelX = (sx + tx) / 2;
+      labelY = (sy + ty) / 2 + offY * 0.5;
+      handleXPos = { x: labelX, y: labelY };
     }
-
-    // TARGET-SIDE: if the incoming tangent ray would pass through
-    // the SOURCE node body, angle cp2y to clear it
-    if (srcPos) {
-      const sTop = srcPos.y - CLEAR;
-      const sBot = srcPos.y + NODE_H + CLEAR;
-      // Is the target pin Y within the source node's vertical extent?
-      if (ty > sTop && ty < sBot) {
-        // Angle away from the source node center
-        cp2y = ty < srcPos.y + NODE_H / 2 ? sTop : sBot;
-      }
-    }
-
-    // TARGET-SIDE: only trigger when cp2 is pushed past the target's
-    // RIGHT edge — meaning the curve has to loop back left through the body.
-    // When cp2 is just past the left edge, the curve enters normally.
-    if (tgtPos && cp2x > tgtPos.x + NODE_W) {
-      // cp2 is to the RIGHT of the entire target node — curve must
-      // loop back left, so angle it to approach from above or below
-      cp2y = sy < tgtPos.y + NODE_H / 2
-        ? tgtPos.y - CLEAR   // source is above → approach from above
-        : tgtPos.y + NODE_H + CLEAR; // source is below → approach from below
-    }
-
-    // SOURCE-SIDE: same check in reverse — if cp1 is still within source body
-    if (srcPos && cp1y > srcPos.y - CLEAR && cp1y < srcPos.y + NODE_H + CLEAR && cp1y !== sy) {
-      const sTop = srcPos.y - CLEAR;
-      const sBot = srcPos.y + NODE_H + CLEAR;
-      cp1y = ty < srcPos.y + NODE_H / 2 ? sTop : sBot;
-    }
-
-    // Apply user Y offset on top
-    cp1y += offY;
-    cp2y += offY;
-
-    edgePath = `M ${sx} ${sy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${tx} ${ty}`;
-
-    labelX = (sx + tx) / 2;
-    labelY = (sy + ty) / 2 + offY * 0.5;
-    handleXPos = { x: labelX, y: labelY };
   }
 
   // Generic drag handler for any axis
