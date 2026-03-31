@@ -48,9 +48,9 @@ export default function DeletableEdge({
   const neitherInStage = !srcInStage && !tgtInStage;
   const isCrossStage = (srcInStage && !tgtInStage) || (!srcInStage && tgtInStage);
 
-  // Pin fan offset for shared handles — sorted by source/target Y position
-  const { srcOffset, tgtOffset } = useMemo(() => {
-    // Source fan: edges from the same output pin, sorted by target Y
+  // Pin fan offset — sorted by source/target Y position
+  const { srcOffset, tgtOffset, verticalSpread } = useMemo(() => {
+    // Source fan: sorted by target Y
     const srcSiblings = edges
       .filter((e) => e.source === source && e.sourceHandle === sourceHandleId)
       .sort((a, b) => {
@@ -62,7 +62,7 @@ export default function DeletableEdge({
     const srcCount = srcSiblings.length;
     const srcOff = srcCount > 1 ? (srcIdx - (srcCount - 1) / 2) * FAN_SPREAD : 0;
 
-    // Target fan: edges to the same input pin, sorted by source Y
+    // Target fan: sorted by source Y — ONLY by source node position
     const tgtSiblings = edges
       .filter((e) => e.target === target && e.targetHandle === targetHandleId)
       .sort((a, b) => {
@@ -74,7 +74,11 @@ export default function DeletableEdge({
     const tgtCount = tgtSiblings.length;
     const tgtOff = tgtCount > 1 ? (tgtIdx - (tgtCount - 1) / 2) * FAN_SPREAD : 0;
 
-    return { srcOffset: srcOff, tgtOffset: tgtOff };
+    // Vertical segment spread: space out the Z-path midpoints so
+    // edges to the same target don't overlap their vertical segments
+    const vSpread = tgtCount > 1 ? (tgtIdx - (tgtCount - 1) / 2) * 20 : 0;
+
+    return { srcOffset: srcOff, tgtOffset: tgtOff, verticalSpread: vSpread };
   }, [edges, id, source, sourceHandleId, target, targetHandleId, nodes]);
 
   const adjustedSourceY = sourceY + srcOffset;
@@ -138,7 +142,7 @@ export default function DeletableEdge({
     if (dx > NODE_W * 0.5) {
       // NORMAL FLOW: target is to the right
       // Simple Z-shape: horizontal → vertical → horizontal
-      const midX = (sx + tx) / 2 + offX;
+      const midX = (sx + tx) / 2 + offX + verticalSpread;
       const points = [
         { x: sx, y: sy },
         { x: midX, y: sy },
