@@ -139,10 +139,31 @@ export default function DeletableEdge({
       return d;
     };
 
-    if (dx > NODE_W * 0.5) {
+    // Is there enough horizontal gap for a Z-path?
+    const srcRight = srcPos ? srcPos.x + NODE_W : sx;
+    const tgtLeft = tgtPos ? tgtPos.x : tx;
+    const hasGap = (tgtLeft - srcRight) > 10; // at least 10px gap between node edges
+
+    if (dx > 0 && hasGap) {
       // NORMAL FLOW: target is to the right
       // Simple Z-shape: horizontal → vertical → horizontal
-      const midX = (sx + tx) / 2 + offX + verticalSpread;
+      const GAP = 20;
+
+      // Available gap between the two nodes
+      const gapStart = srcRight + GAP;
+      const gapEnd = tgtLeft - GAP;
+
+      // Default midX is centered in the gap, adjusted by offsets
+      let midX;
+      if (gapEnd > gapStart) {
+        // There's a gap — place midX within it
+        const gapCenter = (gapStart + gapEnd) / 2;
+        midX = Math.max(gapStart, Math.min(gapEnd, gapCenter + offX + verticalSpread));
+      } else {
+        // Nodes are very close or overlapping — use the midpoint between them
+        midX = (srcRight + tgtLeft) / 2 + verticalSpread;
+      }
+
       const points = [
         { x: sx, y: sy },
         { x: midX, y: sy },
