@@ -33,7 +33,9 @@ export default function DeletableEdge({
   const setEdgeOffset = useProjectStore((s) => s.setEdgeOffset);
   const highlighted = useProjectStore((s) => s.highlightedEdges.has(id));
   const edges = useProjectStore((s) => s.edges);
-  const edgeOffset = useProjectStore((s) => s.edgeOffsets[id] || 0);
+  const edgeOffsetRaw = useProjectStore((s) => s.edgeOffsets[id]);
+  const offX = (typeof edgeOffsetRaw === 'number' ? edgeOffsetRaw : edgeOffsetRaw?.x) || 0;
+  const offY = (typeof edgeOffsetRaw === 'object' ? edgeOffsetRaw?.y : 0) || 0;
   const currentStage = useProjectStore((s) => s.currentStage);
   const isViewAll = useProjectStore((s) => s.viewAll);
   const nodes = useProjectStore((s) => s.nodes);
@@ -69,6 +71,9 @@ export default function DeletableEdge({
   const adjustedTargetY = targetY + tgtOffset;
 
   let edgePath, labelX, labelY;
+  let isBypassPath = false;
+  let handleXPos = null; // { x, y } for vertical segment handle (drag left/right)
+  let handleYPos = null; // { x, y } for horizontal segment handle (drag up/down)
 
   if (isLoop) {
     // Loop edges: curved arc that sweeps below/above to visually indicate a back-edge
@@ -85,7 +90,7 @@ export default function DeletableEdge({
     labelY = dropY - 20;
   } else {
     // Standard stepped path with controllable vertical segment
-    const midX = (sourceX + targetX) / 2 + edgeOffset;
+    const midX = (sourceX + targetX) / 2 + offX;
     const clampedMidX = Math.max(sourceX + 4, Math.min(targetX - 4, midX));
 
     const sy = adjustedSourceY;
@@ -130,41 +135,39 @@ export default function DeletableEdge({
     } else if (needsBypass) {
       const r = 6;
 
-      // Always route to the RIGHT of both nodes (output pins face right)
-      // Go right past the widest node, then up/down, then left into the target input
+      // offX controls the right-side vertical run X position
+      // offY controls the horizontal bypass run Y position
       const rightEdge = Math.max(
         srcPos ? srcPos.x + NODE_W : sx,
         tgtPos ? tgtPos.x + NODE_W : tx,
-      ) + M;
+      ) + M + offX;
 
-      // Decide above or below
       const goAbove = sy < ty;
-      const bypassY = goAbove
+      const baseBypassY = goAbove
         ? Math.min(srcPos ? srcPos.y : sy, tgtPos ? tgtPos.y : ty) - M
         : Math.max(srcPos ? srcPos.y + NODE_H : sy, tgtPos ? tgtPos.y + NODE_H : ty) + M;
+      const bypassY = baseBypassY + offY;
 
-      // Path: source → right past nodes → up/down to bypass → left to above target → down/up to target → into target pin
       const leftOfTarget = (tgtPos ? tgtPos.x : tx) - M;
 
       edgePath = [
         `M ${sx} ${sy}`,
-        // Go right
         `L ${rightEdge - r} ${sy}`,
         `Q ${rightEdge} ${sy} ${rightEdge} ${sy + (bypassY > sy ? r : -r)}`,
-        // Vertical to bypass height
         `L ${rightEdge} ${bypassY - (bypassY > sy ? r : -r)}`,
         `Q ${rightEdge} ${bypassY} ${rightEdge - r} ${bypassY}`,
-        // Horizontal left to above/below target
         `L ${leftOfTarget + r} ${bypassY}`,
         `Q ${leftOfTarget} ${bypassY} ${leftOfTarget} ${bypassY + (ty > bypassY ? r : -r)}`,
-        // Vertical to target height
         `L ${leftOfTarget} ${ty - (ty > bypassY ? r : -r)}`,
         `Q ${leftOfTarget} ${ty} ${leftOfTarget + r} ${ty}`,
-        // Into the target pin
         `L ${tx} ${ty}`,
       ].join(' ');
 
-      labelX = rightEdge;
+      // Store handle positions for rendering
+      isBypassPath = true;
+      handleXPos = { x: rightEdge, y: (sy + bypassY) / 2 }; // vertical run — drag left/right
+      handleYPos = { x: (rightEdge + leftOfTarget) / 2, y: bypassY }; // horizontal run — drag up/down
+      labelX = (rightEdge + leftOfTarget) / 2;
       labelY = bypassY;
     } else {
       const halfHoriz1 = Math.abs(mx - sx) / 2;
@@ -187,23 +190,25 @@ export default function DeletableEdge({
         ].join(' ');
       }
 
+      handleXPos = { x: mx, y: (sy + ty) / 2 }; // vertical segment — drag left/right
       labelX = mx;
       labelY = (sy + ty) / 2;
     }
   }
 
-  // Drag the midpoint handle to adjust offset
-  const onHandleMouseDown = useCallback((e) => {
+  // Generic drag handler for any axis
+  const makeHandleDrag = useCallback((axis) => (e) => {
     e.stopPropagation();
     e.preventDefault();
     setDragging(true);
-    const startX = e.clientX;
-    const startOffset = useProjectStore.getState().edgeOffsets[id] || 0;
+    const startPos = axis === 'x' ? e.clientX : e.clientY;
+    const raw = useProjectStore.getState().edgeOffsets[id];
+    const startVal = (typeof raw === 'object' ? raw?.[axis] : (axis === 'x' ? (raw || 0) : 0)) || 0;
 
     const onMouseMove = (me) => {
-      const dx = me.clientX - startX;
+      const delta = (axis === 'x' ? me.clientX : me.clientY) - startPos;
       const zoom = useProjectStore.getState().canvasZoom || 1;
-      useProjectStore.getState().setEdgeOffset(id, startOffset + dx / zoom);
+      useProjectStore.getState().setEdgeOffset(id, axis, startVal + delta / zoom);
     };
 
     const onMouseUp = () => {
@@ -214,7 +219,7 @@ export default function DeletableEdge({
 
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
-  }, [id, edgeOffset, setEdgeOffset]);
+  }, [id]);
 
   const isGlowing = highlighted && !hovered;
   let baseStroke = isLoop ? '#a78bfa' : (style.stroke || '#38bdf8'); // purple for loops
@@ -284,75 +289,68 @@ export default function DeletableEdge({
           transition: 'opacity 500ms ease, stroke 0.15s, stroke-width 0.15s',
         }}
       />
-      {/* Midpoint controls — wrapped in a tall invisible hit area */}
+      {/* Segment drag handles + delete button */}
       {isInFocus && !readOnly && (
         <EdgeLabelRenderer>
-          {/* Large invisible hover zone centered on midpoint */}
-          <div
-            onMouseEnter={() => { setHandleHovered(true); setHovered(true); }}
-            onMouseLeave={() => { if (!dragging) { setHandleHovered(false); setHovered(false); } }}
-            style={{
-              position: 'absolute',
-              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-              pointerEvents: 'all',
-              width: 40,
-              height: 80,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 4,
-              cursor: 'default',
-            }}
-          >
-            {/* Delete button — above the handle */}
-            {showControls && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteEdge(id);
-                }}
-                style={{
-                  width: 16,
-                  height: 16,
-                  borderRadius: '50%',
-                  background: '#ef4444',
-                  color: '#fff',
-                  border: '2px solid #23272f',
-                  fontSize: 10,
-                  lineHeight: '10px',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  padding: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 700,
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
-                  flexShrink: 0,
-                }}
-                title="Remove connection"
-              >
-                ×
-              </button>
-            )}
-            {/* Drag handle */}
+          {/* X-axis handle (vertical segment — drag left/right) */}
+          {handleXPos && (
             <div
-              onMouseDown={onHandleMouseDown}
+              onMouseEnter={() => { setHandleHovered(true); setHovered(true); }}
+              onMouseLeave={() => { if (!dragging) { setHandleHovered(false); setHovered(false); } }}
               style={{
-                width: showControls ? 16 : 8,
-                height: showControls ? 16 : 8,
-                borderRadius: '50%',
-                background: dragging ? '#60a5fa' : showControls ? '#2a2a3e' : '#3a3a4e',
-                border: showControls ? '2px solid #60a5fa' : '1px solid #4a4a5e',
-                cursor: 'ew-resize',
-                transition: 'width 0.15s, height 0.15s, background 0.15s, border 0.15s',
-                opacity: showControls ? 1 : 0.6,
-                flexShrink: 0,
+                position: 'absolute',
+                transform: `translate(-50%, -50%) translate(${handleXPos.x}px, ${handleXPos.y}px)`,
+                pointerEvents: 'all',
+                width: 30, height: 50,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexDirection: 'column', gap: 3,
               }}
-              title="Drag to offset edge route"
-            />
-          </div>
+            >
+              {showControls && (
+                <button onClick={(e) => { e.stopPropagation(); deleteEdge(id); }}
+                  style={{
+                    width: 14, height: 14, borderRadius: '50%', background: '#ef4444',
+                    color: '#fff', border: '2px solid #23272f', fontSize: 9, lineHeight: '9px',
+                    cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', fontWeight: 700, boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+                    flexShrink: 0,
+                  }} title="Remove connection">×</button>
+              )}
+              <div onMouseDown={makeHandleDrag('x')}
+                style={{
+                  width: showControls ? 14 : 6, height: showControls ? 14 : 6,
+                  borderRadius: '50%',
+                  background: dragging ? '#60a5fa' : showControls ? '#2a2a3e' : '#3a3a4e',
+                  border: showControls ? '2px solid #60a5fa' : '1px solid #4a4a5e',
+                  cursor: 'ew-resize', transition: 'all 0.15s',
+                  opacity: showControls ? 1 : 0.5, flexShrink: 0,
+                }} title="Drag left/right" />
+            </div>
+          )}
+          {/* Y-axis handle (horizontal segment — drag up/down) — only on bypass paths */}
+          {handleYPos && (
+            <div
+              onMouseEnter={() => { setHandleHovered(true); setHovered(true); }}
+              onMouseLeave={() => { if (!dragging) { setHandleHovered(false); setHovered(false); } }}
+              style={{
+                position: 'absolute',
+                transform: `translate(-50%, -50%) translate(${handleYPos.x}px, ${handleYPos.y}px)`,
+                pointerEvents: 'all',
+                width: 50, height: 30,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <div onMouseDown={makeHandleDrag('y')}
+                style={{
+                  width: showControls ? 14 : 6, height: showControls ? 14 : 6,
+                  borderRadius: '50%',
+                  background: dragging ? '#10b981' : showControls ? '#2a2a3e' : '#3a3a4e',
+                  border: showControls ? '2px solid #10b981' : '1px solid #4a4a5e',
+                  cursor: 'ns-resize', transition: 'all 0.15s',
+                  opacity: showControls ? 1 : 0.5,
+                }} title="Drag up/down" />
+            </div>
+          )}
         </EdgeLabelRenderer>
       )}
     </>

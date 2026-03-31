@@ -585,10 +585,15 @@ const useProjectStore = create((set, get) => ({
   },
 
   // Edge offsets
-  setEdgeOffset: (edgeId, offset) => {
-    set((state) => ({
-      edgeOffsets: { ...state.edgeOffsets, [edgeId]: offset },
-    }));
+  // Edge offsets — per-edge segment adjustments: { [edgeId]: { x: number, y: number } }
+  setEdgeOffset: (edgeId, axis, value) => {
+    set((state) => {
+      const current = state.edgeOffsets[edgeId] || { x: 0, y: 0 };
+      const updated = typeof axis === 'object'
+        ? { ...current, ...axis }
+        : { ...current, [axis]: value };
+      return { edgeOffsets: { ...state.edgeOffsets, [edgeId]: updated } };
+    });
   },
 
   // Modules
