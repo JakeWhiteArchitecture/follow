@@ -93,8 +93,67 @@ export default function DeletableEdge({
     const tx = targetX;
     const mx = clampedMidX;
 
+    // Node bounding boxes for collision detection
+    const NODE_W = 180;
+    const NODE_H_APPROX = 80;
+    const MARGIN = 12;
+    const tgtPos = targetNode?.position;
+    const srcPos = sourceNode?.position;
+
+    // Check if the vertical segment at mx would pass through the target node
+    const wouldHitTarget = tgtPos && (
+      mx > tgtPos.x - MARGIN && mx < tgtPos.x + NODE_W + MARGIN &&
+      ((sy < tgtPos.y && ty > tgtPos.y) || (sy > tgtPos.y + NODE_H_APPROX && ty < tgtPos.y + NODE_H_APPROX) ||
+       (Math.abs(sy - ty) > 2 && ty >= tgtPos.y && ty <= tgtPos.y + NODE_H_APPROX))
+    );
+
+    // Check if the vertical segment would pass through the source node
+    const wouldHitSource = srcPos && (
+      mx > srcPos.x - MARGIN && mx < srcPos.x + NODE_W + MARGIN &&
+      ((ty < srcPos.y && sy > srcPos.y) || (ty > srcPos.y + NODE_H_APPROX && sy < srcPos.y + NODE_H_APPROX))
+    );
+
     if (Math.abs(sy - ty) < 1) {
       edgePath = `M ${sx} ${sy} L ${tx} ${ty}`;
+      labelX = (sx + tx) / 2;
+      labelY = sy;
+    } else if (wouldHitTarget || wouldHitSource) {
+      // Route around the blocking node
+      const blockPos = wouldHitTarget ? tgtPos : srcPos;
+      const blockW = NODE_W;
+      const blockH = NODE_H_APPROX;
+      const r = 6;
+
+      // Decide whether to go above or below the blocking node
+      const goAbove = sy < blockPos.y + blockH / 2;
+      const bypassY = goAbove
+        ? blockPos.y - MARGIN
+        : blockPos.y + blockH + MARGIN;
+
+      // Route: source → horizontal to just before block → vertical to bypass Y →
+      // horizontal past block → vertical to target Y → horizontal to target
+      const preX = blockPos.x - MARGIN;
+      const postX = blockPos.x + blockW + MARGIN;
+
+      // Use the side closest to target for the approach
+      const approachFromLeft = tx > blockPos.x + blockW / 2;
+      const edgeX = approachFromLeft ? preX : postX;
+
+      edgePath = [
+        `M ${sx} ${sy}`,
+        `L ${edgeX - r} ${sy}`,
+        `Q ${edgeX} ${sy} ${edgeX} ${sy + (bypassY > sy ? r : -r)}`,
+        `L ${edgeX} ${bypassY - (bypassY > sy ? r : -r)}`,
+        `Q ${edgeX} ${bypassY} ${edgeX + r} ${bypassY}`,
+        `L ${(approachFromLeft ? postX : preX) - r} ${bypassY}`,
+        `Q ${approachFromLeft ? postX : preX} ${bypassY} ${approachFromLeft ? postX : preX} ${bypassY + (ty > bypassY ? r : -r)}`,
+        `L ${approachFromLeft ? postX : preX} ${ty - (ty > bypassY ? r : -r)}`,
+        `Q ${approachFromLeft ? postX : preX} ${ty} ${(approachFromLeft ? postX : preX) + (tx > (approachFromLeft ? postX : preX) ? r : -r)} ${ty}`,
+        `L ${tx} ${ty}`,
+      ].join(' ');
+
+      labelX = (edgeX + (approachFromLeft ? postX : preX)) / 2;
+      labelY = bypassY;
     } else {
       const halfHoriz1 = Math.abs(mx - sx) / 2;
       const halfHoriz2 = Math.abs(tx - mx) / 2;
@@ -115,10 +174,10 @@ export default function DeletableEdge({
           `L ${tx} ${ty}`,
         ].join(' ');
       }
-    }
 
-    labelX = clampedMidX;
-    labelY = (sy + ty) / 2;
+      labelX = mx;
+      labelY = (sy + ty) / 2;
+    }
   }
 
   // Drag the midpoint handle to adjust offset
