@@ -96,12 +96,13 @@ export default function DeletableEdge({
     const absDx = Math.abs(dx);
     const absDy = Math.abs(ty - sy);
 
-    // Do the source and target nodes overlap vertically?
-    // (their Y ranges intersect — stacked layout)
+    // Do the source and target nodes overlap horizontally enough that
+    // a simple Bezier would cut through a node body?
+    // Only trigger when nodes are truly stacked — X overlap is significant
     const nodesOverlapVertically = srcPos && tgtPos && (
       srcPos.y < tgtPos.y + NODE_H + CLEAR &&
       srcPos.y + NODE_H + CLEAR > tgtPos.y &&
-      absDx < NODE_W * 1.5
+      absDx < NODE_W * 0.8  // tighter threshold — only when really overlapping
     );
 
     if (nodesOverlapVertically) {
@@ -118,7 +119,10 @@ export default function DeletableEdge({
       // Waypoint Y — above or below both nodes
       const topOfBoth = Math.min(srcPos.y, tgtPos.y) - CLEAR - 20;
       const botOfBoth = Math.max(srcPos.y + NODE_H, tgtPos.y + NODE_H) + CLEAR + 20;
-      const goAbove = sy <= ty; // if source is above target, route above
+      // Route the waypoint to the OPPOSITE side — if source is above target,
+      // waypoint goes BELOW both (curve drops down and comes back up).
+      // If source is below, waypoint goes ABOVE.
+      const goAbove = sy > ty;
       const waypointY = (goAbove ? topOfBoth : botOfBoth) + offY;
 
       // Waypoint X — to the right, past both nodes
