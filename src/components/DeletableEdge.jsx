@@ -125,23 +125,23 @@ export default function DeletableEdge({
       const waypointX = rightX;
 
       // Two cubic segments chained at the waypoint
-      // Segment 1: source pin → waypoint (exits right, curves to waypoint)
-      const t1 = Math.max(30, absDx * 0.3);
-      const cp1x = sx + t1;
-      const cp1y = sy;
-      const cp2x = waypointX;
-      const cp2y = sy; // approach waypoint horizontally from the left
+      // Segment 1: source pin → waypoint
+      //   Exits right from source, curves up/down to the waypoint
+      const t1 = Math.max(40, absDx * 0.3);
+      const cp1x = sx + t1;       // exit rightward from source
+      const cp1y = sy;            // horizontal exit
+      const cp2x = waypointX;     // arrive at waypoint from the left
+      const cp2y = waypointY;     // arrive horizontally at waypoint Y
 
-      // Segment 2: waypoint → target pin (leaves waypoint, curves into target)
-      const cp3x = waypointX;
-      const cp3y = ty; // leave waypoint heading toward target Y
-      const cp4x = tx - t1;
-      const cp4y = ty;
-
+      // Segment 2: waypoint → target pin
+      //   Leaves waypoint heading left, curves down/up into target
+      const cp3x = waypointX - t1; // leave waypoint heading LEFT
+      const cp3y = waypointY;      // horizontal departure from waypoint
+      const cp4x = tx - t1;        // approach target from the left
       edgePath = [
         `M ${sx} ${sy}`,
         `C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${waypointX} ${waypointY}`,
-        `C ${cp3x} ${cp3y}, ${cp4x} ${cp4y}, ${tx} ${ty}`,
+        `C ${cp3x} ${cp3y}, ${cp4x} ${ty}, ${tx} ${ty}`,
       ].join(' ');
 
       labelX = waypointX;
