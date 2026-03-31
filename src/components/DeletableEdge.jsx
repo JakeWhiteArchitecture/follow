@@ -93,66 +93,103 @@ export default function DeletableEdge({
     const tx = targetX;
     const mx = clampedMidX;
 
-    // Node bounding boxes for collision detection
+    // Node bounding boxes for collision avoidance
     const NODE_W = 180;
-    const NODE_H_APPROX = 80;
-    const MARGIN = 12;
+    const NODE_H = 80;
+    const M = 14; // clearance margin
     const tgtPos = targetNode?.position;
     const srcPos = sourceNode?.position;
 
-    // Check if the vertical segment at mx would pass through the target node
-    const wouldHitTarget = tgtPos && (
-      mx > tgtPos.x - MARGIN && mx < tgtPos.x + NODE_W + MARGIN &&
-      ((sy < tgtPos.y && ty > tgtPos.y) || (sy > tgtPos.y + NODE_H_APPROX && ty < tgtPos.y + NODE_H_APPROX) ||
-       (Math.abs(sy - ty) > 2 && ty >= tgtPos.y && ty <= tgtPos.y + NODE_H_APPROX))
+    // Check if the horizontal run at ty (going into target) would cross through the source node
+    const srcOverlapsTargetY = srcPos && (
+      ty > srcPos.y - M && ty < srcPos.y + NODE_H + M &&
+      tx !== sx // not a straight line
+    );
+    // Check if the horizontal run at sy (leaving source) would cross through the target node
+    const tgtOverlapSourceY = tgtPos && (
+      sy > tgtPos.y - M && sy < tgtPos.y + NODE_H + M &&
+      tx !== sx
+    );
+    // Check if the vertical segment at mx crosses through either node body
+    const vertHitsTarget = tgtPos && (
+      mx > tgtPos.x - M && mx < tgtPos.x + NODE_W + M &&
+      Math.min(sy, ty) < tgtPos.y + NODE_H && Math.max(sy, ty) > tgtPos.y
+    );
+    const vertHitsSource = srcPos && (
+      mx > srcPos.x - M && mx < srcPos.x + NODE_W + M &&
+      Math.min(sy, ty) < srcPos.y + NODE_H && Math.max(sy, ty) > srcPos.y
     );
 
-    // Check if the vertical segment would pass through the source node
-    const wouldHitSource = srcPos && (
-      mx > srcPos.x - MARGIN && mx < srcPos.x + NODE_W + MARGIN &&
-      ((ty < srcPos.y && sy > srcPos.y) || (ty > srcPos.y + NODE_H_APPROX && sy < srcPos.y + NODE_H_APPROX))
-    );
+    const needsBypass = srcOverlapsTargetY || tgtOverlapSourceY || vertHitsTarget || vertHitsSource;
 
     if (Math.abs(sy - ty) < 1) {
       edgePath = `M ${sx} ${sy} L ${tx} ${ty}`;
       labelX = (sx + tx) / 2;
       labelY = sy;
-    } else if (wouldHitTarget || wouldHitSource) {
-      // Route around the blocking node
-      const blockPos = wouldHitTarget ? tgtPos : srcPos;
-      const blockW = NODE_W;
-      const blockH = NODE_H_APPROX;
+    } else if (needsBypass) {
+      // Determine which node(s) we need to avoid
+      // Use the node whose body is most in the way
+      const blockNodes = [];
+      if ((srcOverlapsTargetY || vertHitsSource) && srcPos) blockNodes.push(srcPos);
+      if ((tgtOverlapSourceY || vertHitsTarget) && tgtPos) blockNodes.push(tgtPos);
+
+      // Compute combined bounding box of all blocking nodes
+      let bMinX = Infinity, bMinY = Infinity, bMaxX = -Infinity, bMaxY = -Infinity;
+      blockNodes.forEach((p) => {
+        bMinX = Math.min(bMinX, p.x);
+        bMinY = Math.min(bMinY, p.y);
+        bMaxX = Math.max(bMaxX, p.x + NODE_W);
+        bMaxY = Math.max(bMaxY, p.y + NODE_H);
+      });
+
       const r = 6;
 
-      // Decide whether to go above or below the blocking node
-      const goAbove = sy < blockPos.y + blockH / 2;
-      const bypassY = goAbove
-        ? blockPos.y - MARGIN
-        : blockPos.y + blockH + MARGIN;
+      // Decide: route above or below the blocking area
+      const srcAboveBlock = sy < (bMinY + bMaxY) / 2;
+      const bypassY = srcAboveBlock
+        ? bMinY - M
+        : bMaxY + M;
 
-      // Route: source → horizontal to just before block → vertical to bypass Y →
-      // horizontal past block → vertical to target Y → horizontal to target
-      const preX = blockPos.x - MARGIN;
-      const postX = blockPos.x + blockW + MARGIN;
+      // Route outside the blocking nodes' X range
+      const exitX = Math.min(sx, bMinX - M);
+      const enterX = Math.max(tx, bMaxX + M);
 
-      // Use the side closest to target for the approach
-      const approachFromLeft = tx > blockPos.x + blockW / 2;
-      const edgeX = approachFromLeft ? preX : postX;
+      // Simple 5-segment path: out → up/down → across → down/up → in
+      // Determine if we go left-of-block or right-of-block
+      const goLeft = sx <= bMinX + NODE_W / 2;
+      const sideX = goLeft ? bMinX - M : bMaxX + M;
 
-      edgePath = [
+      const segments = [
         `M ${sx} ${sy}`,
-        `L ${edgeX - r} ${sy}`,
-        `Q ${edgeX} ${sy} ${edgeX} ${sy + (bypassY > sy ? r : -r)}`,
-        `L ${edgeX} ${bypassY - (bypassY > sy ? r : -r)}`,
-        `Q ${edgeX} ${bypassY} ${edgeX + r} ${bypassY}`,
-        `L ${(approachFromLeft ? postX : preX) - r} ${bypassY}`,
-        `Q ${approachFromLeft ? postX : preX} ${bypassY} ${approachFromLeft ? postX : preX} ${bypassY + (ty > bypassY ? r : -r)}`,
-        `L ${approachFromLeft ? postX : preX} ${ty - (ty > bypassY ? r : -r)}`,
-        `Q ${approachFromLeft ? postX : preX} ${ty} ${(approachFromLeft ? postX : preX) + (tx > (approachFromLeft ? postX : preX) ? r : -r)} ${ty}`,
-        `L ${tx} ${ty}`,
-      ].join(' ');
+        `L ${sideX - r} ${sy}`,
+        `Q ${sideX} ${sy} ${sideX} ${sy + (bypassY > sy ? r : -r)}`,
+        `L ${sideX} ${bypassY - (bypassY > sy ? r : -r)}`,
+        `Q ${sideX} ${bypassY} ${sideX + (tx > sideX ? r : -r)} ${bypassY}`,
+      ];
 
-      labelX = (edgeX + (approachFromLeft ? postX : preX)) / 2;
+      // Now we need to get from (sideX, bypassY) to (tx, ty)
+      // If we need to cross to the other side of the block
+      const otherSideX = goLeft ? bMaxX + M : bMinX - M;
+      if ((goLeft && tx > bMaxX) || (!goLeft && tx < bMinX)) {
+        // Need to cross over the block
+        segments.push(
+          `L ${otherSideX - (tx > sideX ? r : -r)} ${bypassY}`,
+          `Q ${otherSideX} ${bypassY} ${otherSideX} ${bypassY + (ty > bypassY ? r : -r)}`,
+          `L ${otherSideX} ${ty - (ty > bypassY ? r : -r)}`,
+          `Q ${otherSideX} ${ty} ${otherSideX + (tx > otherSideX ? r : -r)} ${ty}`,
+          `L ${tx} ${ty}`,
+        );
+      } else {
+        // Target is on the same side
+        segments.push(
+          `L ${sideX} ${ty - (ty > bypassY ? r : -r)}`,
+          `Q ${sideX} ${ty} ${sideX + (tx > sideX ? r : -r)} ${ty}`,
+          `L ${tx} ${ty}`,
+        );
+      }
+
+      edgePath = segments.join(' ');
+      labelX = sideX;
       labelY = bypassY;
     } else {
       const halfHoriz1 = Math.abs(mx - sx) / 2;
