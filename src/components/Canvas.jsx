@@ -202,6 +202,11 @@ function ModuleBackgrounds({ modules, nodes, viewport, onModuleClick }) {
         const width = (maxX - minX) * viewport.zoom;
         const height = (maxY - minY) * viewport.zoom;
 
+        const borderW = 8; // clickable border width
+        const borderColor = mod.stroke || '#c8c4bc';
+        const borderClick = (e) => { e.stopPropagation(); onModuleClick(mod); };
+        const borderStyle = { position: 'absolute', cursor: 'pointer', pointerEvents: 'auto' };
+
         return (
           <div key={mod.id} style={{
             position: 'absolute',
@@ -214,30 +219,24 @@ function ModuleBackgrounds({ modules, nodes, viewport, onModuleClick }) {
               inset: 0,
               background: mod.fill || 'rgba(58,107,82,0.04)',
               borderRadius: 6,
+              border: `1px solid ${borderColor}40`,
             }} />
-            {/* Border — clickable, only the edge strip */}
-            <div
-              onClick={(e) => { e.stopPropagation(); onModuleClick(mod); }}
-              style={{
-                position: 'absolute',
-                inset: -4,
-                border: `5px solid transparent`,
-                borderRadius: 10,
-                cursor: 'pointer',
-                pointerEvents: 'auto',
-                boxShadow: `inset 0 0 0 1px ${mod.stroke || '#c8c4bc'}`,
-              }}
-            />
+            {/* Four clickable border strips */}
+            <div onClick={borderClick} style={{ ...borderStyle, top: -borderW/2, left: 0, right: 0, height: borderW }} />
+            <div onClick={borderClick} style={{ ...borderStyle, bottom: -borderW/2, left: 0, right: 0, height: borderW }} />
+            <div onClick={borderClick} style={{ ...borderStyle, left: -borderW/2, top: 0, bottom: 0, width: borderW }} />
+            <div onClick={borderClick} style={{ ...borderStyle, right: -borderW/2, top: 0, bottom: 0, width: borderW }} />
+            {/* Label */}
             <span
-              onClick={(e) => { e.stopPropagation(); onModuleClick(mod); }}
+              onClick={borderClick}
               style={{
               position: 'absolute',
-              top: 4,
-              left: 8,
+              top: -16,
+              left: 4,
               fontSize: Math.max(11, 9 / (viewport.zoom || 1)),
               fontWeight: 600,
-              color: mod.stroke || '#c8c4bc',
-              opacity: 0.8,
+              color: borderColor,
+              opacity: 0.7,
               whiteSpace: 'nowrap',
               cursor: 'pointer',
               pointerEvents: 'auto',
