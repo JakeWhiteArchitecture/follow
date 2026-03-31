@@ -106,15 +106,19 @@ export default function DeletableEdge({
     const tgtPos = targetNode?.position;
     const srcPos = sourceNode?.position;
 
-    // Check if the horizontal run at ty (going into target) would cross through the source node
+    // Collision: only trigger bypass when nodes overlap horizontally
+    // (their X ranges intersect) AND the edge path would cross through
+
+    // Check if the horizontal run at ty would cross through the source node body
+    // Requires: target input X is within the source node's X range
     const srcOverlapsTargetY = srcPos && (
       ty > srcPos.y - M && ty < srcPos.y + NODE_H + M &&
-      tx !== sx // not a straight line
+      tx > srcPos.x - M && tx < srcPos.x + NODE_W + M
     );
-    // Check if the horizontal run at sy (leaving source) would cross through the target node
+    // Check if the horizontal run at sy would cross through the target node body
     const tgtOverlapSourceY = tgtPos && (
       sy > tgtPos.y - M && sy < tgtPos.y + NODE_H + M &&
-      tx !== sx
+      sx > tgtPos.x - M && sx < tgtPos.x + NODE_W + M
     );
     // Check if the vertical segment at mx crosses through either node body
     const vertHitsTarget = tgtPos && (
