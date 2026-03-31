@@ -71,133 +71,41 @@ export default function DeletableEdge({
   const adjustedTargetY = targetY + tgtOffset;
 
   let edgePath, labelX, labelY;
-  let isBypassPath = false;
-  let handleXPos = null; // { x, y } for vertical segment handle (drag left/right)
-  let handleYPos = null; // { x, y } for horizontal segment handle (drag up/down)
+  let handleXPos = null; // control point handle
+
+  const sx = sourceX;
+  const sy = adjustedSourceY;
+  const tx = targetX;
+  const ty = adjustedTargetY;
 
   if (isLoop) {
-    // Loop edges: curved arc that sweeps below/above to visually indicate a back-edge
-    const sx = sourceX;
-    const sy = adjustedSourceY;
-    const tx = targetX;
-    const ty = adjustedTargetY;
-    // Arc sweeps below both endpoints
+    // Loop edges: curved arc sweeping below
     const dropY = Math.max(sy, ty) + 80 + Math.abs(sx - tx) * 0.15;
-    const cpX1 = sx + 40;
-    const cpX2 = tx - 40;
-    edgePath = `M ${sx} ${sy} C ${cpX1} ${dropY}, ${cpX2} ${dropY}, ${tx} ${ty}`;
+    edgePath = `M ${sx} ${sy} C ${sx + 40} ${dropY}, ${tx - 40} ${dropY}, ${tx} ${ty}`;
     labelX = (sx + tx) / 2;
     labelY = dropY - 20;
   } else {
-    // Standard stepped path with controllable vertical segment
-    const midX = (sourceX + targetX) / 2 + offX;
-    const clampedMidX = Math.max(sourceX + 4, Math.min(targetX - 4, midX));
+    // UE Blueprint-style horizontal-tangent cubic Bezier
+    // Control points extend horizontally from pins, scaled by distance
+    const dx = Math.abs(tx - sx);
+    const dy = Math.abs(ty - sy);
+    // Base tangent length: at least 50px, scales with distance
+    const baseTangent = Math.max(50, dx * 0.4, dy * 0.3);
+    // offX adjusts tangent length (positive = longer tangent = wider curve)
+    const tangent = baseTangent + offX;
 
-    const sy = adjustedSourceY;
-    const ty = adjustedTargetY;
-    const sx = sourceX;
-    const tx = targetX;
-    const mx = clampedMidX;
+    const cp1x = sx + tangent;
+    const cp1y = sy + offY;
+    const cp2x = tx - tangent;
+    const cp2y = ty + offY;
 
-    // Node bounding boxes for collision avoidance
-    const NODE_W = 180;
-    const NODE_H = 80;
-    const M = 14; // clearance margin
-    const tgtPos = targetNode?.position;
-    const srcPos = sourceNode?.position;
+    edgePath = `M ${sx} ${sy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${tx} ${ty}`;
 
-    // Collision: only trigger bypass when nodes overlap horizontally
-    // (their X ranges intersect) AND the edge path would cross through
-
-    // Check if the horizontal run at ty would cross through the source node body
-    // Requires: target input X is within the source node's X range
-    const srcOverlapsTargetY = srcPos && (
-      ty > srcPos.y - M && ty < srcPos.y + NODE_H + M &&
-      tx > srcPos.x - M && tx < srcPos.x + NODE_W + M
-    );
-    // Check if the horizontal run at sy would cross through the target node body
-    const tgtOverlapSourceY = tgtPos && (
-      sy > tgtPos.y - M && sy < tgtPos.y + NODE_H + M &&
-      sx > tgtPos.x - M && sx < tgtPos.x + NODE_W + M
-    );
-    // Check if the vertical segment at mx crosses through either node body
-    const vertHitsTarget = tgtPos && (
-      mx > tgtPos.x - M && mx < tgtPos.x + NODE_W + M &&
-      Math.min(sy, ty) < tgtPos.y + NODE_H && Math.max(sy, ty) > tgtPos.y
-    );
-    const vertHitsSource = srcPos && (
-      mx > srcPos.x - M && mx < srcPos.x + NODE_W + M &&
-      Math.min(sy, ty) < srcPos.y + NODE_H && Math.max(sy, ty) > srcPos.y
-    );
-
-    const needsBypass = srcOverlapsTargetY || tgtOverlapSourceY || vertHitsTarget || vertHitsSource;
-
-    if (Math.abs(sy - ty) < 1) {
-      edgePath = `M ${sx} ${sy} L ${tx} ${ty}`;
-      labelX = (sx + tx) / 2;
-      labelY = sy;
-    } else if (needsBypass) {
-      const r = 6;
-
-      // offX controls the right-side vertical run X position
-      // offY controls the horizontal bypass run Y position
-      const rightEdge = Math.max(
-        srcPos ? srcPos.x + NODE_W : sx,
-        tgtPos ? tgtPos.x + NODE_W : tx,
-      ) + M + offX;
-
-      const goAbove = sy < ty;
-      const baseBypassY = goAbove
-        ? Math.min(srcPos ? srcPos.y : sy, tgtPos ? tgtPos.y : ty) - M
-        : Math.max(srcPos ? srcPos.y + NODE_H : sy, tgtPos ? tgtPos.y + NODE_H : ty) + M;
-      const bypassY = baseBypassY + offY;
-
-      const leftOfTarget = (tgtPos ? tgtPos.x : tx) - M;
-
-      edgePath = [
-        `M ${sx} ${sy}`,
-        `L ${rightEdge - r} ${sy}`,
-        `Q ${rightEdge} ${sy} ${rightEdge} ${sy + (bypassY > sy ? r : -r)}`,
-        `L ${rightEdge} ${bypassY - (bypassY > sy ? r : -r)}`,
-        `Q ${rightEdge} ${bypassY} ${rightEdge - r} ${bypassY}`,
-        `L ${leftOfTarget + r} ${bypassY}`,
-        `Q ${leftOfTarget} ${bypassY} ${leftOfTarget} ${bypassY + (ty > bypassY ? r : -r)}`,
-        `L ${leftOfTarget} ${ty - (ty > bypassY ? r : -r)}`,
-        `Q ${leftOfTarget} ${ty} ${leftOfTarget + r} ${ty}`,
-        `L ${tx} ${ty}`,
-      ].join(' ');
-
-      // Store handle positions for rendering
-      isBypassPath = true;
-      handleXPos = { x: rightEdge, y: (sy + bypassY) / 2 }; // vertical run — drag left/right
-      handleYPos = { x: (rightEdge + leftOfTarget) / 2, y: bypassY }; // horizontal run — drag up/down
-      labelX = (rightEdge + leftOfTarget) / 2;
-      labelY = bypassY;
-    } else {
-      const halfHoriz1 = Math.abs(mx - sx) / 2;
-      const halfHoriz2 = Math.abs(tx - mx) / 2;
-      const halfVert = Math.abs(ty - sy) / 2;
-      const r = Math.min(8, halfHoriz1, halfHoriz2, halfVert);
-
-      if (r < 1) {
-        edgePath = `M ${sx} ${sy} L ${mx} ${sy} L ${mx} ${ty} L ${tx} ${ty}`;
-      } else {
-        const goingDown = ty > sy;
-        const ry = goingDown ? r : -r;
-        edgePath = [
-          `M ${sx} ${sy}`,
-          `L ${mx - r} ${sy}`,
-          `Q ${mx} ${sy} ${mx} ${sy + ry}`,
-          `L ${mx} ${ty - ry}`,
-          `Q ${mx} ${ty} ${mx + r} ${ty}`,
-          `L ${tx} ${ty}`,
-        ].join(' ');
-      }
-
-      handleXPos = { x: mx, y: (sy + ty) / 2 }; // vertical segment — drag left/right
-      labelX = mx;
-      labelY = (sy + ty) / 2;
-    }
+    // Midpoint of the bezier (approximate for handle placement)
+    labelX = (sx + tx) / 2;
+    labelY = (sy + ty) / 2 + offY * 0.5;
+    // Single handle at the curve's midpoint — drag X for tangent, Y for curve bias
+    handleXPos = { x: labelX, y: labelY };
   }
 
   // Generic drag handler for any axis
@@ -293,10 +201,9 @@ export default function DeletableEdge({
           transition: 'opacity 500ms ease, stroke 0.15s, stroke-width 0.15s',
         }}
       />
-      {/* Segment drag handles + delete button */}
+      {/* Curve handle + delete button */}
       {isInFocus && !readOnly && (
         <EdgeLabelRenderer>
-          {/* X-axis handle (vertical segment — drag left/right) */}
           {handleXPos && (
             <div
               onMouseEnter={() => { setHandleHovered(true); setHovered(true); }}
@@ -305,7 +212,7 @@ export default function DeletableEdge({
                 position: 'absolute',
                 transform: `translate(-50%, -50%) translate(${handleXPos.x}px, ${handleXPos.y}px)`,
                 pointerEvents: 'all',
-                width: 30, height: 50,
+                width: 40, height: 40,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexDirection: 'column', gap: 3,
               }}
@@ -320,39 +227,40 @@ export default function DeletableEdge({
                     flexShrink: 0,
                   }} title="Remove connection">×</button>
               )}
-              <div onMouseDown={makeHandleDrag('x')}
+              {/* Drag handle — X for tangent, Y for curve bias */}
+              <div
+                onMouseDown={(e) => {
+                  e.stopPropagation(); e.preventDefault();
+                  setDragging(true);
+                  const startMX = e.clientX;
+                  const startMY = e.clientY;
+                  const raw = useProjectStore.getState().edgeOffsets[id];
+                  const startOX = (typeof raw === 'object' ? raw?.x : (raw || 0)) || 0;
+                  const startOY = (typeof raw === 'object' ? raw?.y : 0) || 0;
+
+                  const onMouseMove = (me) => {
+                    const zoom = useProjectStore.getState().canvasZoom || 1;
+                    const dx = (me.clientX - startMX) / zoom;
+                    const dy = (me.clientY - startMY) / zoom;
+                    useProjectStore.getState().setEdgeOffset(id, { x: startOX + dx, y: startOY + dy });
+                  };
+                  const onMouseUp = () => {
+                    setDragging(false);
+                    window.removeEventListener('mousemove', onMouseMove);
+                    window.removeEventListener('mouseup', onMouseUp);
+                  };
+                  window.addEventListener('mousemove', onMouseMove);
+                  window.addEventListener('mouseup', onMouseUp);
+                }}
                 style={{
                   width: showControls ? 14 : 6, height: showControls ? 14 : 6,
                   borderRadius: '50%',
                   background: dragging ? '#60a5fa' : showControls ? '#2a2a3e' : '#3a3a4e',
                   border: showControls ? '2px solid #60a5fa' : '1px solid #4a4a5e',
-                  cursor: 'ew-resize', transition: 'all 0.15s',
+                  cursor: 'move', transition: 'all 0.15s',
                   opacity: showControls ? 1 : 0.5, flexShrink: 0,
-                }} title="Drag left/right" />
-            </div>
-          )}
-          {/* Y-axis handle (horizontal segment — drag up/down) — only on bypass paths */}
-          {handleYPos && (
-            <div
-              onMouseEnter={() => { setHandleHovered(true); setHovered(true); }}
-              onMouseLeave={() => { if (!dragging) { setHandleHovered(false); setHovered(false); } }}
-              style={{
-                position: 'absolute',
-                transform: `translate(-50%, -50%) translate(${handleYPos.x}px, ${handleYPos.y}px)`,
-                pointerEvents: 'all',
-                width: 50, height: 30,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
-              <div onMouseDown={makeHandleDrag('y')}
-                style={{
-                  width: showControls ? 14 : 6, height: showControls ? 14 : 6,
-                  borderRadius: '50%',
-                  background: dragging ? '#10b981' : showControls ? '#2a2a3e' : '#3a3a4e',
-                  border: showControls ? '2px solid #10b981' : '1px solid #4a4a5e',
-                  cursor: 'ns-resize', transition: 'all 0.15s',
-                  opacity: showControls ? 1 : 0.5,
-                }} title="Drag up/down" />
+                }} title="Drag to shape curve"
+              />
             </div>
           )}
         </EdgeLabelRenderer>
