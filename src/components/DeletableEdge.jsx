@@ -85,45 +85,77 @@ export default function DeletableEdge({
     labelX = (sx + tx) / 2;
     labelY = dropY - 20;
   } else {
-    // Horizontal-tangent cubic Bezier with node-aware control points
-    const dx = tx - sx; // signed horizontal distance
-    const dy = Math.abs(ty - sy);
-    const absDx = Math.abs(dx);
-
+    // Cubic Bezier with overlap-aware tangent angles
     const NODE_W = 180;
     const NODE_H = 80;
-    const CLEARANCE = 30;
+    const CLEAR = 30;
     const srcPos = sourceNode?.position;
     const tgtPos = targetNode?.position;
 
-    // Determine if target is roughly to the right (normal flow) or stacked/behind
-    const isNormalFlow = dx > NODE_W; // target is clearly to the right
+    const dx = tx - sx;
+    const dy = ty - sy;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
 
-    if (isNormalFlow) {
-      // Standard horizontal Bezier — target is to the right
-      const baseTangent = Math.max(50, absDx * 0.35) + offX;
-      const cp1x = sx + baseTangent;
-      const cp1y = sy + offY;
-      const cp2x = tx - baseTangent;
-      const cp2y = ty + offY;
-      edgePath = `M ${sx} ${sy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${tx} ${ty}`;
-    } else {
-      // Target is below/above/behind — curve must go RIGHT past both nodes first,
-      // then sweep down/up to the target
-      const rightClear = Math.max(
-        srcPos ? srcPos.x + NODE_W + CLEARANCE : sx + 60,
-        tgtPos ? tgtPos.x + NODE_W + CLEARANCE : tx + 60,
-      ) + offX;
+    // Base tangent length — scales with distance
+    const baseTangent = Math.max(50, absDx * 0.4, absDy * 0.25) + offX;
 
-      // Use two-segment path: horizontal out right, then curve down to target
-      const cp1x = rightClear;
-      const cp1y = sy + offY;
-      const cp2x = rightClear;
-      const cp2y = ty + offY;
-      edgePath = `M ${sx} ${sy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${tx} ${ty}`;
+    // Start with horizontal tangents
+    let cp1x = sx + baseTangent;
+    let cp1y = sy;
+    let cp2x = tx - baseTangent;
+    let cp2y = ty;
+
+    // Check if the TARGET node body overlaps the outgoing tangent path from source
+    // (i.e. target node is near the source pin horizontally)
+    if (tgtPos) {
+      const tgtTop = tgtPos.y - CLEAR;
+      const tgtBot = tgtPos.y + NODE_H + CLEAR;
+      const tgtLft = tgtPos.x - CLEAR;
+      const tgtRgt = tgtPos.x + NODE_W + CLEAR;
+
+      // Does the outgoing horizontal ray from source pass through target body?
+      if (sy > tgtTop && sy < tgtBot && cp1x > tgtLft) {
+        // Angle the outgoing tangent away from the target node
+        cp1y = sy < tgtPos.y + NODE_H / 2
+          ? tgtTop  // go above
+          : tgtBot; // go below
+      }
     }
 
-    labelX = (sx + tx) / 2 + (isNormalFlow ? 0 : 40);
+    // Check if the SOURCE node body overlaps the incoming tangent path to target
+    if (srcPos) {
+      const srcTop = srcPos.y - CLEAR;
+      const srcBot = srcPos.y + NODE_H + CLEAR;
+      const srcLft = srcPos.x - CLEAR;
+      const srcRgt = srcPos.x + NODE_W + CLEAR;
+
+      // Does the incoming horizontal ray to target pass through source body?
+      if (ty > srcTop && ty < srcBot && cp2x < srcRgt) {
+        // Angle the incoming tangent away from the source node
+        cp2y = ty < srcPos.y + NODE_H / 2
+          ? srcTop  // approach from above
+          : srcBot; // approach from below
+      }
+    }
+
+    // When target is behind/below source, push control points right of both nodes
+    if (dx < NODE_W * 0.5) {
+      const rightEdge = Math.max(
+        srcPos ? srcPos.x + NODE_W + CLEAR : sx + 60,
+        tgtPos ? tgtPos.x + NODE_W + CLEAR : tx + 60,
+      ) + offX;
+      cp1x = Math.max(cp1x, rightEdge);
+      cp2x = Math.max(cp2x, rightEdge);
+    }
+
+    // Apply user Y offset
+    cp1y += offY;
+    cp2y += offY;
+
+    edgePath = `M ${sx} ${sy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${tx} ${ty}`;
+
+    labelX = (sx + tx) / 2 + (dx < NODE_W * 0.5 ? 40 : 0);
     labelY = (sy + ty) / 2 + offY * 0.5;
     handleXPos = { x: labelX, y: labelY };
   }
