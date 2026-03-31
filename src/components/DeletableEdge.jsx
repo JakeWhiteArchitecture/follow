@@ -139,12 +139,11 @@ export default function DeletableEdge({
       return d;
     };
 
-    // Is there enough horizontal gap for a Z-path?
+    // Use pin positions directly — is there horizontal space for a Z-path?
     const srcRight = srcPos ? srcPos.x + NODE_W : sx;
     const tgtLeft = tgtPos ? tgtPos.x : tx;
-    const hasGap = (tgtLeft - srcRight) > 10; // at least 10px gap between node edges
 
-    if (dx > 0 && hasGap) {
+    if (dx > 30) {
       // NORMAL FLOW: target is to the right
       // Simple Z-shape: horizontal → vertical → horizontal
       const GAP = 20;
