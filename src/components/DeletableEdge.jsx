@@ -85,94 +85,104 @@ export default function DeletableEdge({
     labelX = (sx + tx) / 2;
     labelY = dropY - 20;
   } else {
-    // Edge routing with adaptive complexity
+    // Orthogonal stepped path with rounded corners — like plumbing pipes
     const NODE_W = 180;
     const NODE_H = 100;
-    const CLEAR = 25;
+    const MARGIN = 20;
+    const R = 8; // corner radius
     const srcPos = sourceNode?.position;
     const tgtPos = targetNode?.position;
 
     const dx = tx - sx;
-    const absDx = Math.abs(dx);
-    const absDy = Math.abs(ty - sy);
 
-    // Do the source and target nodes overlap horizontally enough that
-    // a simple Bezier would cut through a node body?
-    // Only trigger when nodes are truly stacked — X overlap is significant
-    const nodesOverlapVertically = srcPos && tgtPos && (
-      srcPos.y < tgtPos.y + NODE_H + CLEAR &&
-      srcPos.y + NODE_H + CLEAR > tgtPos.y &&
-      absDx < NODE_W * 0.8  // tighter threshold — only when really overlapping
-    );
+    // Helper: build a rounded-corner stepped path from a list of waypoints
+    const buildPath = (points) => {
+      if (points.length < 2) return `M ${points[0].x} ${points[0].y}`;
+      let d = `M ${points[0].x} ${points[0].y}`;
+      for (let i = 1; i < points.length - 1; i++) {
+        const prev = points[i - 1];
+        const curr = points[i];
+        const next = points[i + 1];
+        // Clamp radius to half the shortest adjacent segment
+        const lenIn = Math.max(Math.abs(curr.x - prev.x), Math.abs(curr.y - prev.y));
+        const lenOut = Math.max(Math.abs(next.x - curr.x), Math.abs(next.y - curr.y));
+        const r = Math.min(R, lenIn / 2, lenOut / 2);
+        if (r < 1) {
+          d += ` L ${curr.x} ${curr.y}`;
+          continue;
+        }
+        // Direction vectors
+        const dxIn = Math.sign(curr.x - prev.x);
+        const dyIn = Math.sign(curr.y - prev.y);
+        const dxOut = Math.sign(next.x - curr.x);
+        const dyOut = Math.sign(next.y - curr.y);
+        // Line to just before the corner
+        d += ` L ${curr.x - dxIn * r} ${curr.y - dyIn * r}`;
+        // Quadratic curve around the corner
+        d += ` Q ${curr.x} ${curr.y} ${curr.x + dxOut * r} ${curr.y + dyOut * r}`;
+      }
+      d += ` L ${points[points.length - 1].x} ${points[points.length - 1].y}`;
+      return d;
+    };
 
-    if (nodesOverlapVertically) {
-      // --- MULTI-SEGMENT: route with a waypoint to go around both nodes ---
-      // Path: source → right → above/below both → left → into target
-      // Uses two chained cubic beziers with a waypoint between them
-
-      // Find the right edge — clear of both nodes
-      const rightX = Math.max(
-        srcPos.x + NODE_W,
-        tgtPos.x + NODE_W,
-      ) + CLEAR + 40 + offX;
-
-      // Waypoint Y — above or below both nodes
-      const topOfBoth = Math.min(srcPos.y, tgtPos.y) - CLEAR - 20;
-      const botOfBoth = Math.max(srcPos.y + NODE_H, tgtPos.y + NODE_H) + CLEAR + 20;
-      // Route the waypoint to the OPPOSITE side — if source is above target,
-      // waypoint goes BELOW both (curve drops down and comes back up).
-      // If source is below, waypoint goes ABOVE.
-      const goAbove = sy > ty;
-      const waypointY = (goAbove ? topOfBoth : botOfBoth) + offY;
-
-      // Waypoint X — to the right, past both nodes
-      const waypointX = rightX;
-
-      // Two cubic segments chained at the waypoint
-      // Segment 1: source pin → waypoint
-      //   Exits right from source, curves up/down to the waypoint
-      const t1 = Math.max(40, absDx * 0.3);
-      const cp1x = sx + t1;       // exit rightward from source
-      const cp1y = sy;            // horizontal exit
-      const cp2x = waypointX;     // arrive at waypoint from the left
-      const cp2y = waypointY;     // arrive horizontally at waypoint Y
-
-      // Segment 2: waypoint → target pin
-      //   Leaves waypoint heading left, curves down/up into target
-      const cp3x = waypointX - t1; // leave waypoint heading LEFT
-      const cp3y = waypointY;      // horizontal departure from waypoint
-      const cp4x = tx - t1;        // approach target from the left
-      edgePath = [
-        `M ${sx} ${sy}`,
-        `C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${waypointX} ${waypointY}`,
-        `C ${cp3x} ${cp3y}, ${cp4x} ${ty}, ${tx} ${ty}`,
-      ].join(' ');
-
-      labelX = waypointX;
-      labelY = waypointY;
-      handleXPos = { x: (sx + tx) / 2, y: waypointY };
+    if (dx > NODE_W * 0.5) {
+      // NORMAL FLOW: target is to the right
+      // Simple Z-shape: horizontal → vertical → horizontal
+      const midX = (sx + tx) / 2 + offX;
+      const points = [
+        { x: sx, y: sy },
+        { x: midX, y: sy },
+        { x: midX, y: ty },
+        { x: tx, y: ty },
+      ];
+      edgePath = buildPath(points);
+      labelX = midX;
+      labelY = (sy + ty) / 2;
+      handleXPos = { x: midX, y: (sy + ty) / 2 };
     } else {
-      // --- SIMPLE: standard 2-control-point Bezier ---
-      const baseTangent = Math.max(40, absDx * 0.35, absDy * 0.2) + offX;
+      // STACKED/BEHIND: target is below/above or overlapping
+      // U-shape: right → down/up → left → down/up → right into target
+      const rightX = Math.max(
+        srcPos ? srcPos.x + NODE_W : sx,
+        tgtPos ? tgtPos.x + NODE_W : tx,
+      ) + MARGIN + offX;
 
-      let cp1x, cp2x;
-      if (dx > 80) {
-        cp1x = sx + baseTangent;
-        cp2x = tx - baseTangent;
+      // Go above or below — route BETWEEN the nodes if possible,
+      // otherwise go around the outside
+      const srcBot = srcPos ? srcPos.y + NODE_H : sy;
+      const tgtTop = tgtPos ? tgtPos.y : ty;
+      const srcTop = srcPos ? srcPos.y : sy;
+      const tgtBot = tgtPos ? tgtPos.y + NODE_H : ty;
+
+      let midY;
+      if (sy < ty) {
+        // Source above target — route between them or below both
+        const gapBetween = tgtTop - srcBot;
+        midY = gapBetween > MARGIN * 2
+          ? (srcBot + tgtTop) / 2 + offY  // route through the gap
+          : Math.max(srcBot, tgtBot) + MARGIN + offY; // route below both
       } else {
-        const pushRight = Math.max(baseTangent, 80 - dx);
-        cp1x = sx + pushRight;
-        cp2x = tx + pushRight;
+        // Source below target — route between them or above both
+        const gapBetween = srcTop - tgtBot;
+        midY = gapBetween > MARGIN * 2
+          ? (tgtBot + srcTop) / 2 + offY  // route through the gap
+          : Math.min(srcTop, tgtTop) - MARGIN + offY; // route above both
       }
 
-      let cp1y = sy + offY;
-      let cp2y = ty + offY;
+      const leftX = (tgtPos ? tgtPos.x : tx) - MARGIN;
 
-      edgePath = `M ${sx} ${sy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${tx} ${ty}`;
-
-      labelX = (sx + tx) / 2;
-      labelY = (sy + ty) / 2 + offY * 0.5;
-      handleXPos = { x: labelX, y: labelY };
+      const points = [
+        { x: sx, y: sy },
+        { x: rightX, y: sy },   // go right past both nodes
+        { x: rightX, y: midY }, // vertical to the routing channel
+        { x: leftX, y: midY },  // horizontal across to above/below target
+        { x: leftX, y: ty },    // vertical to target pin height
+        { x: tx, y: ty },       // into the target pin
+      ];
+      edgePath = buildPath(points);
+      labelX = rightX;
+      labelY = midY;
+      handleXPos = { x: (rightX + leftX) / 2, y: midY };
     }
   }
 
