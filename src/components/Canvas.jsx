@@ -176,7 +176,7 @@ function EdgeChevron({ side, visible, onClick, label }) {
 // Approximate node dimensions for bounding box calculation
 const NODE_DIMS = { workPackage: { w: 180, h: 64 }, decision: { w: 154, h: 64 }, checkpoint: { w: 140, h: 60 } };
 
-function ModuleBackgrounds({ modules, nodes, viewport, onModuleClick }) {
+function ModuleBackgrounds({ modules, nodes, viewport, onModuleClick, onModuleDragStart }) {
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
 
   return (
@@ -202,10 +202,14 @@ function ModuleBackgrounds({ modules, nodes, viewport, onModuleClick }) {
         const width = (maxX - minX) * viewport.zoom;
         const height = (maxY - minY) * viewport.zoom;
 
-        const borderW = 8; // clickable border width
+        const borderW = 8;
         const borderColor = mod.stroke || '#c8c4bc';
-        const borderClick = (e) => { e.stopPropagation(); onModuleClick(mod); };
-        const borderStyle = { position: 'absolute', cursor: 'pointer', pointerEvents: 'auto' };
+        const borderDown = (e) => {
+          e.stopPropagation();
+          onModuleClick(mod);
+          onModuleDragStart(e, mod);
+        };
+        const borderStyle = { position: 'absolute', cursor: 'grab', pointerEvents: 'auto' };
 
         return (
           <div key={mod.id} style={{
@@ -222,13 +226,13 @@ function ModuleBackgrounds({ modules, nodes, viewport, onModuleClick }) {
               border: `1px solid ${borderColor}40`,
             }} />
             {/* Four clickable border strips */}
-            <div onClick={borderClick} style={{ ...borderStyle, top: -borderW/2, left: 0, right: 0, height: borderW }} />
-            <div onClick={borderClick} style={{ ...borderStyle, bottom: -borderW/2, left: 0, right: 0, height: borderW }} />
-            <div onClick={borderClick} style={{ ...borderStyle, left: -borderW/2, top: 0, bottom: 0, width: borderW }} />
-            <div onClick={borderClick} style={{ ...borderStyle, right: -borderW/2, top: 0, bottom: 0, width: borderW }} />
+            <div onMouseDown={borderDown} style={{ ...borderStyle, top: -borderW/2, left: 0, right: 0, height: borderW }} />
+            <div onMouseDown={borderDown} style={{ ...borderStyle, bottom: -borderW/2, left: 0, right: 0, height: borderW }} />
+            <div onMouseDown={borderDown} style={{ ...borderStyle, left: -borderW/2, top: 0, bottom: 0, width: borderW }} />
+            <div onMouseDown={borderDown} style={{ ...borderStyle, right: -borderW/2, top: 0, bottom: 0, width: borderW }} />
             {/* Label */}
             <span
-              onClick={borderClick}
+              onMouseDown={borderDown}
               style={{
               position: 'absolute',
               top: -16,
@@ -771,7 +775,43 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
 
       {/* Module background rectangles — behind nodes */}
       <ModuleBackgrounds modules={modules} nodes={nodes} viewport={viewport}
-        onModuleClick={(mod) => selectModuleMembers(mod)} />
+        onModuleClick={(mod) => selectModuleMembers(mod)}
+        onModuleDragStart={(e, mod) => {
+          const startX = e.clientX;
+          const startY = e.clientY;
+          const zoom = useProjectStore.getState().canvasZoom || 1;
+          // Snapshot starting positions of all member nodes
+          const startPositions = {};
+          const currentNodes = useProjectStore.getState().nodes;
+          mod.members.forEach((nid) => {
+            const n = currentNodes.find((nd) => nd.id === nid);
+            if (n) startPositions[nid] = { x: n.position.x, y: n.position.y };
+          });
+
+          const onMouseMove = (me) => {
+            const dx = (me.clientX - startX) / zoom;
+            const dy = (me.clientY - startY) / zoom;
+            useProjectStore.setState((state) => ({
+              nodes: state.nodes.map((n) => {
+                if (startPositions[n.id]) {
+                  return { ...n, position: { x: startPositions[n.id].x + dx, y: startPositions[n.id].y + dy } };
+                }
+                return n;
+              }),
+            }));
+          };
+
+          const onMouseUp = () => {
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+            document.body.style.cursor = '';
+          };
+
+          document.body.style.cursor = 'grabbing';
+          window.addEventListener('mousemove', onMouseMove);
+          window.addEventListener('mouseup', onMouseUp);
+        }}
+      />
 
       {/* Edge chevrons — appear on hover */}
       <EdgeChevron
