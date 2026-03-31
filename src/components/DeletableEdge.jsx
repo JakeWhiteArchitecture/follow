@@ -138,15 +138,15 @@ export default function DeletableEdge({
       }
     }
 
-    // TARGET-SIDE: when the curve comes from far away and cp2 is pushed
-    // right of the target (stacked layout), the Bezier re-enters through
-    // the target body. Angle cp2y so the curve approaches from the side
-    // the SOURCE is on — above if source is above, below if source is below.
-    if (tgtPos && cp2x > tgtPos.x + CLEAR) {
-      const tTop = tgtPos.y - CLEAR;
-      const tBot = tgtPos.y + NODE_H + CLEAR;
-      // The curve is coming FROM the source — approach from that direction
-      cp2y = sy < tgtPos.y + NODE_H / 2 ? tTop : tBot;
+    // TARGET-SIDE: only trigger when cp2 is pushed past the target's
+    // RIGHT edge — meaning the curve has to loop back left through the body.
+    // When cp2 is just past the left edge, the curve enters normally.
+    if (tgtPos && cp2x > tgtPos.x + NODE_W) {
+      // cp2 is to the RIGHT of the entire target node — curve must
+      // loop back left, so angle it to approach from above or below
+      cp2y = sy < tgtPos.y + NODE_H / 2
+        ? tgtPos.y - CLEAR   // source is above → approach from above
+        : tgtPos.y + NODE_H + CLEAR; // source is below → approach from below
     }
 
     // SOURCE-SIDE: same check in reverse — if cp1 is still within source body
