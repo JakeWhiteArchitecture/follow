@@ -85,43 +85,45 @@ export default function DeletableEdge({
     labelX = (sx + tx) / 2;
     labelY = dropY - 20;
   } else {
-    // Horizontal-tangent cubic Bezier — control points steer clear of node bodies
-    const dx = Math.abs(tx - sx);
+    // Horizontal-tangent cubic Bezier with node-aware control points
+    const dx = tx - sx; // signed horizontal distance
     const dy = Math.abs(ty - sy);
+    const absDx = Math.abs(dx);
 
-    // Get node bounding boxes for clearance
     const NODE_W = 180;
     const NODE_H = 80;
     const CLEARANCE = 30;
     const srcPos = sourceNode?.position;
     const tgtPos = targetNode?.position;
 
-    // Source node's right edge + clearance
-    const srcRight = srcPos ? srcPos.x + NODE_W + CLEARANCE : sx + 50;
-    // Target node's left edge - clearance
-    const tgtLeft = tgtPos ? tgtPos.x - CLEARANCE : tx - 50;
+    // Determine if target is roughly to the right (normal flow) or stacked/behind
+    const isNormalFlow = dx > NODE_W; // target is clearly to the right
 
-    // Control points must extend past node bodies horizontally
-    // cp1 must be at least past the source node's right edge
-    // cp2 must be at least past the target node's left edge
-    const minCp1x = Math.max(srcRight, sx + 40);
-    const minCp2x = Math.min(tgtLeft, tx - 40);
+    if (isNormalFlow) {
+      // Standard horizontal Bezier — target is to the right
+      const baseTangent = Math.max(50, absDx * 0.35) + offX;
+      const cp1x = sx + baseTangent;
+      const cp1y = sy + offY;
+      const cp2x = tx - baseTangent;
+      const cp2y = ty + offY;
+      edgePath = `M ${sx} ${sy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${tx} ${ty}`;
+    } else {
+      // Target is below/above/behind — curve must go RIGHT past both nodes first,
+      // then sweep down/up to the target
+      const rightClear = Math.max(
+        srcPos ? srcPos.x + NODE_W + CLEARANCE : sx + 60,
+        tgtPos ? tgtPos.x + NODE_W + CLEARANCE : tx + 60,
+      ) + offX;
 
-    // Scale tangent with both horizontal and vertical distance
-    const baseTangent = Math.max(60, dx * 0.4, dy * 0.5);
-    const tangent = baseTangent + offX;
+      // Use two-segment path: horizontal out right, then curve down to target
+      const cp1x = rightClear;
+      const cp1y = sy + offY;
+      const cp2x = rightClear;
+      const cp2y = ty + offY;
+      edgePath = `M ${sx} ${sy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${tx} ${ty}`;
+    }
 
-    const cp1x = Math.max(minCp1x, sx + tangent);
-    const cp2x = Math.min(minCp2x, tx - tangent);
-
-    // Vertical: control points stay at pin Y level by default
-    // offY biases them to shape the curve
-    const cp1y = sy + offY;
-    const cp2y = ty + offY;
-
-    edgePath = `M ${sx} ${sy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${tx} ${ty}`;
-
-    labelX = (sx + tx) / 2;
+    labelX = (sx + tx) / 2 + (isNormalFlow ? 0 : 40);
     labelY = (sy + ty) / 2 + offY * 0.5;
     handleXPos = { x: labelX, y: labelY };
   }
