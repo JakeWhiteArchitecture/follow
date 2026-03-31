@@ -202,17 +202,21 @@ export default function DeletableEdge({
         midY = (tgtBot + srcTop) / 2 + offY;
       }
 
+      // Exit stub: output pin faces RIGHT, so go right first before turning
+      const stubX = sx + MARGIN;
+
       const points = [
         { x: sx, y: sy },
-        { x: vertX, y: sy },     // go left past both nodes
-        { x: vertX, y: midY },   // vertical to the channel
-        { x: tx, y: midY },      // horizontal across to target X
-        { x: tx, y: ty },        // vertical to target pin
+        { x: stubX, y: sy },      // short stub RIGHT from output pin
+        { x: stubX, y: midY },    // vertical to the channel
+        { x: vertX, y: midY },    // horizontal left past both nodes
+        { x: vertX, y: ty },      // vertical to target pin height
+        { x: tx, y: ty },         // into the target pin
       ];
       edgePath = buildPath(points);
-      labelX = rightX;
+      labelX = vertX;
       labelY = midY;
-      handleXPos = { x: (rightX + leftX) / 2, y: midY };
+      handleXPos = { x: (vertX + stubX) / 2, y: midY };
     }
   }
 
