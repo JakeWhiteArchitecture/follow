@@ -416,7 +416,13 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
   const connectStartRef = useRef(null);
   const stageKeys = Object.keys(stages).sort((a, b) => parseInt(a) - parseInt(b));
 
-  // All nodes visible — current stage full, others ghosted, multi-selected outlined
+  // Check if selected nodes form an existing module
+  const selectedArr = [...selectedNodeIds];
+  const isModuleSelected = selectedNodeIds.size >= 2 && modules.some((m) =>
+    selectedArr.every((nid) => m.members.includes(nid))
+  );
+
+  // All nodes visible — current stage full, others ghosted
   // Mark nodes as `selected` in React Flow so group dragging works natively
   const stageNodeIds = new Set(nodes.filter((n) => n.data.stage === currentStage).map((n) => n.id));
   const styledNodes = nodes.map((n) => {
@@ -425,10 +431,16 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
     return {
       ...n,
       selected: isMultiSelected,
+      className: isMultiSelected ? 'tw-selected' : '',
       style: {
         transition: 'opacity 500ms ease, filter 500ms ease',
         ...(inStage ? { opacity: 1, filter: 'none' } : { opacity: 0.15, filter: 'grayscale(0.7)' }),
-        ...(isMultiSelected ? { outline: '2px solid #f59e0b', outlineOffset: 3, borderRadius: 6 } : {}),
+        // Subtle glow for module-move mode, amber outline only for new grouping
+        ...(isMultiSelected && isModuleSelected
+          ? { boxShadow: '0 0 8px rgba(167,139,250,0.3)' }
+          : isMultiSelected
+          ? { outline: '2px solid #f59e0b', outlineOffset: 2, borderRadius: 4 }
+          : {}),
       },
       zIndex: isMultiSelected ? 20 : inStage ? 10 : 0,
     };

@@ -8,6 +8,10 @@
       * { margin: 0; padding: 0; box-sizing: border-box; }
       html, body, #root { width: 100%; height: 100%; overflow: hidden; }
       body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+      /* Suppress React Flow's default selection outline */
+      .react-flow__node.selected,
+      .react-flow__node.selected .react-flow__handle { outline: none !important; box-shadow: none !important; }
+      .react-flow__node.tw-selected { outline: none !important; }
     </style>
   </head>
   <body>
