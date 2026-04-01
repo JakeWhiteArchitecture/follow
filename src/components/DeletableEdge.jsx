@@ -188,13 +188,12 @@ export default function DeletableEdge({
       const vertX = leftmost - MARGIN + offX;
 
       // Horizontal channel Y: midpoint of the GAP between node edges
-      // Gap = space between source node bottom and target node top (or vice versa)
-      // The pin Y positions tell us where we are on each node, so we can
-      // calculate the remaining distance to each node edge.
-      const srcNodeBot = srcPos ? srcPos.y + NODE_H : sy + 40;
-      const srcNodeTop = srcPos ? srcPos.y : sy - 40;
-      const tgtNodeBot = tgtPos ? tgtPos.y + NODE_H : ty + 40;
-      const tgtNodeTop = tgtPos ? tgtPos.y : ty - 40;
+      // Use pin Y as a better estimate of node extent — pins are ON the node,
+      // so the node body extends at least to the pin position
+      const srcNodeBot = Math.max(srcPos ? srcPos.y + NODE_H : sy + 20, sy + 20);
+      const srcNodeTop = Math.min(srcPos ? srcPos.y : sy - 20, sy - 20);
+      const tgtNodeBot = Math.max(tgtPos ? tgtPos.y + NODE_H : ty + 20, ty + 20);
+      const tgtNodeTop = Math.min(tgtPos ? tgtPos.y : ty - 20, ty - 20);
 
       let midY;
       if (sy < ty) {
