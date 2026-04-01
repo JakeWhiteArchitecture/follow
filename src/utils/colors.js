@@ -7,12 +7,12 @@ export const STATUS_COLORS = {
 
 // Type-based header colours (fixed, never change with status)
 export const TYPE_HEADER_COLORS = {
-  work_package: '#d97706',  // orange/amber
-  decision: '#C8922A',      // amber/gold
-  checkpoint: '#6b7280',    // grey
+  work_package: '#EA580C',  // orange
+  decision: '#DB2777',      // hot pink
+  checkpoint: '#7C3AED',    // purple
 };
 
-// Status accent bar + chip colours
+// Status dot/text colours for the status bar
 export const STATUS_ACCENT = {
   pending: '#4B5563',
   active: '#3B82F6',

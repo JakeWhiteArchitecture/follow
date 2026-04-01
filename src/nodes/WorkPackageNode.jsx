@@ -180,12 +180,12 @@ export default function WorkPackageNode({ id, data, selected }) {
 
   const [nodeHovered, setNodeHovered] = useState(false);
   const headerH = 22;
-  const roleH = 14;
+  const statusBarH = 20;
   const groupPadding = 6;
   const outputRowH = 18;
   const dividerH = 1;
 
-  let pinAreaY = headerH + roleH;
+  let pinAreaY = headerH + statusBarH;
 
   groups.forEach((group, gi) => {
     const outputCount = Math.max(1, group.outputs?.length || 0);
@@ -282,26 +282,13 @@ export default function WorkPackageNode({ id, data, selected }) {
         cursor: 'grab',
       }}
     >
-      {/* Status accent bar — left edge */}
-      <div style={{
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        bottom: 0,
-        width: 4,
-        background: accentColor,
-        borderRadius: '2px 0 0 2px',
-        zIndex: 2,
-      }} />
-
-      {/* Title bar — type-coloured */}
+      {/* Row 1 — Header bar (type colour) */}
       <div style={{
         height: headerH,
         background: headerColor,
         borderRadius: '2px 2px 0 0',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
         padding: '0 8px',
       }}>
         <div style={{ flex: 1, overflow: 'hidden' }}>
@@ -329,37 +316,36 @@ export default function WorkPackageNode({ id, data, selected }) {
             />
           )}
         </div>
+      </div>
+
+      {/* Row 2 — Status bar */}
+      <div style={{
+        height: statusBarH,
+        background: '#1E293B',
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 8px',
+        gap: 5,
+      }}>
+        <div style={{
+          width: 8, height: 8, borderRadius: '50%',
+          background: accentColor, flexShrink: 0,
+        }} />
         <span style={{
-          fontSize: 7,
-          color: accentColor,
-          background: accentColor + '40',
-          padding: '1px 5px',
-          borderRadius: 3,
-          marginLeft: 3,
-          textTransform: 'uppercase',
-          fontWeight: 700,
-          flexShrink: 0,
-          letterSpacing: '0.3px',
+          fontSize: 10, color: accentColor, textTransform: 'uppercase',
+          fontWeight: 600, letterSpacing: '0.3px',
         }}>
           {data.status}
         </span>
-      </div>
-
-      {/* Role + stage subtitle */}
-      <div style={{
-        fontSize: 8,
-        color: roleName ? '#6b7280' : '#ef4444',
-        fontStyle: roleName ? 'normal' : 'italic',
-        padding: '1px 6px 0',
-        height: roleH,
-        lineHeight: roleH + 'px',
-        overflow: 'hidden',
-        whiteSpace: 'nowrap',
-        textOverflow: 'ellipsis',
-      }}>
-        {roleName || 'Unassigned'}
-        {data.stage !== undefined && (
-          <span style={{ marginLeft: 4, color: '#3a3a4e', fontSize: 7 }}>S{data.stage}</span>
+        {roleName && (
+          <span style={{ fontSize: 8, color: '#6b7280', marginLeft: 'auto' }}>
+            {roleName}
+          </span>
+        )}
+        {!roleName && (
+          <span style={{ fontSize: 8, color: '#ef4444', fontStyle: 'italic', marginLeft: 'auto' }}>
+            Unassigned
+          </span>
         )}
       </div>
 

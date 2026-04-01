@@ -191,7 +191,7 @@ function EdgeChevron({ side, visible, onClick, label }) {
 }
 
 // Approximate node dimensions for bounding box calculation
-const NODE_DIMS = { workPackage: { w: 180, h: 64 }, decision: { w: 208, h: 64 }, checkpoint: { w: 140, h: 60 } };
+const NODE_DIMS = { workPackage: { w: 180, h: 64 }, decision: { w: 180, h: 64 }, checkpoint: { w: 140, h: 46 } };
 
 function ModuleBackgrounds({ modules, nodes, viewport, onModuleClick, onModuleDragStart }) {
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
