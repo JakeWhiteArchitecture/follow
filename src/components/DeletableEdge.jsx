@@ -187,19 +187,26 @@ export default function DeletableEdge({
       );
       const vertX = leftmost - MARGIN + offX;
 
-      // Horizontal channel Y: between the two nodes
-      const srcBot = srcPos ? srcPos.y + NODE_H : sy;
-      const tgtTop = tgtPos ? tgtPos.y : ty;
-      const srcTop = srcPos ? srcPos.y : sy;
-      const tgtBot = tgtPos ? tgtPos.y + NODE_H : ty;
+      // Horizontal channel Y: midpoint of the GAP between node edges
+      // Gap = space between source node bottom and target node top (or vice versa)
+      // The pin Y positions tell us where we are on each node, so we can
+      // calculate the remaining distance to each node edge.
+      const srcNodeBot = srcPos ? srcPos.y + NODE_H : sy + 40;
+      const srcNodeTop = srcPos ? srcPos.y : sy - 40;
+      const tgtNodeBot = tgtPos ? tgtPos.y + NODE_H : ty + 40;
+      const tgtNodeTop = tgtPos ? tgtPos.y : ty - 40;
 
       let midY;
       if (sy < ty) {
-        // Source above target
-        midY = (srcBot + tgtTop) / 2 + offY;
+        // Source above target — gap is between source bottom edge and target top edge
+        const gapTop = srcNodeBot;
+        const gapBot = tgtNodeTop;
+        midY = (gapTop + gapBot) / 2 + offY;
       } else {
-        // Source below target
-        midY = (tgtBot + srcTop) / 2 + offY;
+        // Source below target — gap is between target bottom edge and source top edge
+        const gapTop = tgtNodeBot;
+        const gapBot = srcNodeTop;
+        midY = (gapTop + gapBot) / 2 + offY;
       }
 
       // Exit stub: must clear the source node's right edge
