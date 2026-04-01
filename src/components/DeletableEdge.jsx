@@ -74,12 +74,23 @@ export default function DeletableEdge({
     const tgtCount = tgtSiblings.length;
     const tgtOff = tgtCount > 1 ? (tgtIdx - (tgtCount - 1) / 2) * FAN_SPREAD : 0;
 
-    // Vertical segment spread: sort by the actual Y position each edge
-    // needs to reach (source Y), so higher sources get left-er segments
-    // and edges don't cross in the middle
-    const vSpread = tgtCount > 1 ? (tgtIdx - (tgtCount - 1) / 2) * 20 : 0;
+    // Vertical segment spread: sort by target Y across ALL edges from same source NODE
+    // This prevents edges from different pins on the same source from crossing mid-path
+    const allFromSrc = edges
+      .filter((e) => e.source === source)
+      .sort((a, b) => {
+        const aNode = nodes.find((n) => n.id === a.target);
+        const bNode = nodes.find((n) => n.id === b.target);
+        return (aNode?.position?.y || 0) - (bNode?.position?.y || 0);
+      });
+    const srcNodeIdx = allFromSrc.findIndex((e) => e.id === id);
+    const srcNodeCount = allFromSrc.length;
+    const nodeSpread = srcNodeCount > 1 ? (srcNodeIdx - (srcNodeCount - 1) / 2) * 15 : 0;
 
-    return { srcOffset: srcOff, tgtOffset: tgtOff, verticalSpread: vSpread };
+    // Target-pin spread (edges to same pin) + source-node spread (edges from same node)
+    const tgtPinSpread = tgtCount > 1 ? (tgtIdx - (tgtCount - 1) / 2) * 20 : 0;
+
+    return { srcOffset: srcOff, tgtOffset: tgtOff, verticalSpread: tgtPinSpread + nodeSpread };
   }, [edges, id, source, sourceHandleId, target, targetHandleId, nodes]);
 
   const adjustedSourceY = sourceY + srcOffset;
