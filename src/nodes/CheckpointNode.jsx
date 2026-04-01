@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { STATUS_COLORS } from '../utils/colors';
+import { TYPE_HEADER_COLORS, STATUS_ACCENT } from '../utils/colors';
 import useProjectStore from '../store/useProjectStore';
 
 const PIN_SIZE = 8;
@@ -52,7 +52,8 @@ function InlineEdit({ value, onChange, style, inputStyle: extraInputStyle }) {
 }
 
 export default function CheckpointNode({ id, data, selected }) {
-  const colors = STATUS_COLORS[data.status] || STATUS_COLORS.pending;
+  const headerColor = TYPE_HEADER_COLORS.checkpoint;
+  const accentColor = STATUS_ACCENT[data.status] || STATUS_ACCENT.pending;
   const highlighted = useProjectStore((s) => s.highlightedNodes.has(id));
   const selectedNode = useProjectStore((s) => s.selectedNode);
   const updateNodeData = useProjectStore((s) => s.updateNodeData);
@@ -61,16 +62,28 @@ export default function CheckpointNode({ id, data, selected }) {
 
   return (
     <div style={{ position: 'relative', width: 140, height: 60, cursor: 'grab' }}>
+      {/* Status accent bar — left edge */}
+      <div style={{
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 4,
+        background: accentColor,
+        borderRadius: '2px 0 0 2px',
+        zIndex: 2,
+      }} />
+
       <Handle type="target" position={Position.Left} id="input"
         style={{
-          background: colors.border, width: PIN_SIZE, height: PIN_SIZE,
+          background: accentColor, width: PIN_SIZE, height: PIN_SIZE,
           top: '50%', left: -1, borderRadius: '50%', border: '2px solid #23272f',
         }} />
       <div style={{
         width: '100%',
         height: '100%',
         background: '#1e1e2e',
-        border: `2px solid ${selected ? '#3b82f6' : isChainGlow ? '#60a5fa50' : colors.border}`,
+        border: `2px solid ${selected ? '#3b82f6' : isChainGlow ? '#60a5fa50' : headerColor}`,
         clipPath: 'polygon(20% 0%, 80% 0%, 100% 50%, 80% 100%, 20% 100%, 0% 50%)',
         display: 'flex',
         flexDirection: 'column',
@@ -85,7 +98,7 @@ export default function CheckpointNode({ id, data, selected }) {
         <div style={{
           fontSize: 10,
           fontWeight: 700,
-          color: colors.border,
+          color: '#d1d5db',
           textAlign: 'center',
           padding: '0 28px',
           lineHeight: 1.2,
@@ -95,24 +108,29 @@ export default function CheckpointNode({ id, data, selected }) {
             <InlineEdit
               value={data.label}
               onChange={(val) => updateNodeData(id, { label: val })}
-              style={{ fontSize: 10, fontWeight: 700, color: colors.border }}
+              style={{ fontSize: 10, fontWeight: 700, color: '#d1d5db' }}
               inputStyle={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff' }}
             />
           )}
         </div>
+        {/* Status chip */}
         <span style={{
-          fontSize: 8,
-          color: '#6b7280',
+          fontSize: 7,
+          color: accentColor,
+          background: accentColor + '40',
+          padding: '1px 5px',
+          borderRadius: 3,
           textTransform: 'uppercase',
-          fontWeight: 600,
+          fontWeight: 700,
           marginTop: 2,
+          letterSpacing: '0.3px',
         }}>
           {data.status}
         </span>
       </div>
       <Handle type="source" position={Position.Right} id="output"
         style={{
-          background: colors.border, width: PIN_SIZE, height: PIN_SIZE,
+          background: accentColor, width: PIN_SIZE, height: PIN_SIZE,
           top: '50%', right: -1, borderRadius: '50%', border: '2px solid #23272f',
         }} />
     </div>

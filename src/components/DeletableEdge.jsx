@@ -112,7 +112,9 @@ export default function DeletableEdge({
     labelY = dropY - 20;
   } else {
     // Orthogonal stepped path with rounded corners — like plumbing pipes
-    const NODE_W = 180;
+    // Use actual measured widths when available
+    const srcW = sourceNode?.measured?.width || sourceNode?.width || 180;
+    const tgtW = targetNode?.measured?.width || targetNode?.width || 180;
     const NODE_H = 100;
     const MARGIN = 20;
     const R = 8; // corner radius
@@ -152,7 +154,7 @@ export default function DeletableEdge({
     };
 
     // Use pin positions directly — is there horizontal space for a Z-path?
-    const srcRight = srcPos ? srcPos.x + NODE_W : sx;
+    const srcRight = srcPos ? srcPos.x + srcW : sx;
     const tgtLeft = tgtPos ? tgtPos.x : tx;
 
     // Check if Z-path is viable: need a clear gap between node edges
@@ -209,7 +211,7 @@ export default function DeletableEdge({
       }
 
       // Exit stub: must clear the source node's right edge
-      const srcRightEdge = srcPos ? srcPos.x + NODE_W + MARGIN : sx + MARGIN;
+      const srcRightEdge = srcPos ? srcPos.x + srcW + MARGIN : sx + MARGIN;
       const stubX = Math.max(sx + MARGIN, srcRightEdge);
 
       const points = [

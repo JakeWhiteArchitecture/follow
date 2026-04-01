@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { STATUS_COLORS } from '../utils/colors';
+import { STATUS_COLORS, TYPE_HEADER_COLORS, STATUS_ACCENT } from '../utils/colors';
 import useProjectStore from '../store/useProjectStore';
 
 const PIN_SIZE = 8;
@@ -151,6 +151,8 @@ function PinGroup({ nodeId, group, colors, readOnly, isLast, flipped }) {
 
 export default function WorkPackageNode({ id, data, selected }) {
   const colors = STATUS_COLORS[data.status] || STATUS_COLORS.pending;
+  const headerColor = TYPE_HEADER_COLORS.work_package;
+  const accentColor = STATUS_ACCENT[data.status] || STATUS_ACCENT.pending;
   const contacts = useProjectStore((s) => s.project.project.contacts);
   const highlighted = useProjectStore((s) => s.highlightedNodes.has(id));
   const selectedNode = useProjectStore((s) => s.selectedNode);
@@ -201,7 +203,7 @@ export default function WorkPackageNode({ id, data, selected }) {
         style={{
           top: inputCenterY,
           [flipped ? 'right' : 'left']: -1,
-          background: colors.border,
+          background: accentColor,
           width: PIN_SIZE,
           height: PIN_SIZE,
           borderRadius: '50%',
@@ -223,7 +225,7 @@ export default function WorkPackageNode({ id, data, selected }) {
             style={{
               top: outY,
               [flipped ? 'left' : 'right']: -1,
-              background: colors.border,
+              background: accentColor,
               width: PIN_SIZE,
               height: PIN_SIZE,
               borderRadius: '50%',
@@ -280,10 +282,22 @@ export default function WorkPackageNode({ id, data, selected }) {
         cursor: 'grab',
       }}
     >
-      {/* Title bar */}
+      {/* Status accent bar — left edge */}
+      <div style={{
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 4,
+        background: accentColor,
+        borderRadius: '2px 0 0 2px',
+        zIndex: 2,
+      }} />
+
+      {/* Title bar — type-coloured */}
       <div style={{
         height: headerH,
-        background: colors.border,
+        background: headerColor,
         borderRadius: '2px 2px 0 0',
         display: 'flex',
         alignItems: 'center',
@@ -317,11 +331,15 @@ export default function WorkPackageNode({ id, data, selected }) {
         </div>
         <span style={{
           fontSize: 7,
-          color: 'rgba(255,255,255,0.5)',
-          marginLeft: 4,
+          color: accentColor,
+          background: accentColor + '40',
+          padding: '1px 5px',
+          borderRadius: 3,
+          marginLeft: 3,
           textTransform: 'uppercase',
-          fontWeight: 600,
+          fontWeight: 700,
           flexShrink: 0,
+          letterSpacing: '0.3px',
         }}>
           {data.status}
         </span>

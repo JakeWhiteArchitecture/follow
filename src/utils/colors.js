@@ -5,6 +5,21 @@ export const STATUS_COLORS = {
   blocked: { bg: '#fee2e2', border: '#ef4444', text: '#991b1b' },
 };
 
+// Type-based header colours (fixed, never change with status)
+export const TYPE_HEADER_COLORS = {
+  work_package: '#d97706',  // orange/amber
+  decision: '#C8922A',      // amber/gold
+  checkpoint: '#6b7280',    // grey
+};
+
+// Status accent bar + chip colours
+export const STATUS_ACCENT = {
+  pending: '#4B5563',
+  active: '#3B82F6',
+  complete: '#22C55E',
+  blocked: '#EF4444',
+};
+
 export const STAGE_COLORS = [
   '#e0e7ff', // 0 - indigo tint
   '#dbeafe', // 1 - blue tint
