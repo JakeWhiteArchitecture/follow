@@ -863,8 +863,7 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
-        snapToGrid
-        snapGrid={[20, 20]}
+        snapToGrid={false}
         deleteKeyCode={readOnly ? null : 'Backspace'}
         selectionKeyCode={null}
         multiSelectionKeyCode={null}
