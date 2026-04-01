@@ -181,12 +181,10 @@ export default function DeletableEdge({
       // STACKED/BEHIND: target is below/above or overlapping
       // Route LEFT of both nodes, through the gap between them
 
-      // Vertical segment X: left of the leftmost node edge
-      const leftmost = Math.min(
-        srcPos ? srcPos.x : sx,
-        tgtPos ? tgtPos.x : tx,
-      );
-      const vertX = leftmost - MARGIN + offX;
+      // Vertical segment X: left of the TARGET node (where the edge arrives)
+      // This minimizes winding distance — the edge goes to where it needs to be
+      const tgtLeftEdge = tgtPos ? tgtPos.x : tx;
+      const vertX = tgtLeftEdge - MARGIN + offX;
 
       // Horizontal channel Y: midpoint of the GAP between node edges
       // Use actual measured node heights when available
