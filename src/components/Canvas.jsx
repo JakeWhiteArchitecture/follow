@@ -852,9 +852,9 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
         edges={edges}
         onNodesChange={readOnly ? undefined : onNodesChange}
         onNodeDragStop={readOnly ? undefined : (_, draggedNode) => {
-          // Snap-align: if the dragged node is close to aligning with another node, snap it
           const SNAP_THRESHOLD = 15;
-          const storeNodes = useProjectStore.getState().nodes;
+          const storeState = useProjectStore.getState();
+          const storeNodes = storeState.nodes;
           const pos = draggedNode.position;
           let snapX = pos.x;
           let snapY = pos.y;
@@ -868,10 +868,32 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
               snapX = other.position.x;
               snappedX = true;
             }
+            // Snap X alignment (right edges align — using measured widths)
+            if (!snappedX) {
+              const dragW = draggedNode.measured?.width || 180;
+              const otherW = other.measured?.width || other.width || 180;
+              const dragRight = pos.x + dragW;
+              const otherRight = other.position.x + otherW;
+              if (Math.abs(dragRight - otherRight) < SNAP_THRESHOLD) {
+                snapX = otherRight - dragW;
+                snappedX = true;
+              }
+            }
             // Snap Y alignment (top edges align)
             if (!snappedY && Math.abs(other.position.y - pos.y) < SNAP_THRESHOLD) {
               snapY = other.position.y;
               snappedY = true;
+            }
+            // Snap center-Y alignment
+            if (!snappedY) {
+              const dragH = draggedNode.measured?.height || 60;
+              const otherH = other.measured?.height || other.height || 60;
+              const dragCenterY = pos.y + dragH / 2;
+              const otherCenterY = other.position.y + otherH / 2;
+              if (Math.abs(dragCenterY - otherCenterY) < SNAP_THRESHOLD) {
+                snapY = otherCenterY - dragH / 2;
+                snappedY = true;
+              }
             }
             if (snappedX && snappedY) break;
           }
