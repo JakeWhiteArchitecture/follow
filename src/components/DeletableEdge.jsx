@@ -144,28 +144,17 @@ export default function DeletableEdge({
     const srcRight = srcPos ? srcPos.x + NODE_W : sx;
     const tgtLeft = tgtPos ? tgtPos.x : tx;
 
-    if (dx > 0) {
-      // Target pin is to the right of source pin — use Z-path
-      // NORMAL FLOW: target is to the right
-      // Simple Z-shape: horizontal → vertical → horizontal
-      const GAP = 20;
+    // Check if Z-path is viable: need a clear gap between node edges
+    const GAP = 20;
+    const gapStart = srcRight + GAP;
+    const gapEnd = tgtLeft - GAP;
+    // Z-path only if there's a real gap AND midX would stay between the pins
+    const canZPath = dx > 0 && gapEnd > gapStart && gapStart < tx && gapEnd > sx;
 
-      // Available gap between the two nodes
-      const gapStart = srcRight + GAP;
-      const gapEnd = tgtLeft - GAP;
-
-      // Default midX: prefer the gap between node edges
-      // When gap is tight or nodes overlap, place midX just left of the target node
-      let midX;
-      if (gapEnd > gapStart) {
-        // Clear gap — place midX within it
-        const gapCenter = (gapStart + gapEnd) / 2;
-        midX = Math.max(gapStart, Math.min(gapEnd, gapCenter + offX + verticalSpread));
-      } else {
-        // Tight or overlapping — place midX just left of the leftmost node edge
-        const leftmost = Math.min(srcPos ? srcPos.x : sx, tgtPos ? tgtPos.x : tx);
-        midX = leftmost - MARGIN + offX + verticalSpread;
-      }
+    if (canZPath) {
+      // Z-PATH: horizontal → vertical → horizontal
+      const gapCenter = (gapStart + gapEnd) / 2;
+      const midX = Math.max(gapStart, Math.min(gapEnd, gapCenter + offX + verticalSpread));
 
       const points = [
         { x: sx, y: sy },
