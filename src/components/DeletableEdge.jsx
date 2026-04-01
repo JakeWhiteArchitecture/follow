@@ -74,8 +74,9 @@ export default function DeletableEdge({
     const tgtCount = tgtSiblings.length;
     const tgtOff = tgtCount > 1 ? (tgtIdx - (tgtCount - 1) / 2) * FAN_SPREAD : 0;
 
-    // Vertical segment spread: space out the Z-path midpoints so
-    // edges to the same target don't overlap their vertical segments
+    // Vertical segment spread: sort by the actual Y position each edge
+    // needs to reach (source Y), so higher sources get left-er segments
+    // and edges don't cross in the middle
     const vSpread = tgtCount > 1 ? (tgtIdx - (tgtCount - 1) / 2) * 20 : 0;
 
     return { srcOffset: srcOff, tgtOffset: tgtOff, verticalSpread: vSpread };
