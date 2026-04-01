@@ -105,11 +105,54 @@ export default function DeletableEdge({
   const ty = adjustedTargetY;
 
   if (isLoop) {
-    // Loop edges: curved arc sweeping below
-    const dropY = Math.max(sy, ty) + 80 + Math.abs(sx - tx) * 0.15;
-    edgePath = `M ${sx} ${sy} C ${sx + 40} ${dropY}, ${tx - 40} ${dropY}, ${tx} ${ty}`;
-    labelX = (sx + tx) / 2;
-    labelY = dropY - 20;
+    // Loop edges: orthogonal path that routes below/around the nodes
+    // Exit source rightward, go down below both nodes, go left, enter target from left
+    const srcPos = sourceNode?.position;
+    const tgtPos = targetNode?.position;
+    const srcH = sourceNode?.measured?.height || 80;
+    const tgtH = targetNode?.measured?.height || 80;
+    const M = 25;
+    const R = 8;
+
+    // Go below both nodes
+    const belowY = Math.max(
+      srcPos ? srcPos.y + srcH : sy,
+      tgtPos ? tgtPos.y + tgtH : ty,
+    ) + M + offY;
+
+    // Right stub from source, then down, then left to target, then up into target
+    const rightX = sx + M + offX;
+    const leftX = tx - M;
+
+    // Use buildPath if available, otherwise manual
+    const points = [
+      { x: sx, y: sy },
+      { x: rightX, y: sy },
+      { x: rightX, y: belowY },
+      { x: leftX, y: belowY },
+      { x: leftX, y: ty },
+      { x: tx, y: ty },
+    ];
+
+    // Build rounded path
+    let d = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length - 1; i++) {
+      const prev = points[i - 1], curr = points[i], next = points[i + 1];
+      const lenIn = Math.max(Math.abs(curr.x - prev.x), Math.abs(curr.y - prev.y));
+      const lenOut = Math.max(Math.abs(next.x - curr.x), Math.abs(next.y - curr.y));
+      const r = Math.min(R, lenIn / 2, lenOut / 2);
+      if (r < 1) { d += ` L ${curr.x} ${curr.y}`; continue; }
+      const dxIn = Math.sign(curr.x - prev.x), dyIn = Math.sign(curr.y - prev.y);
+      const dxOut = Math.sign(next.x - curr.x), dyOut = Math.sign(next.y - curr.y);
+      d += ` L ${curr.x - dxIn * r} ${curr.y - dyIn * r}`;
+      d += ` Q ${curr.x} ${curr.y} ${curr.x + dxOut * r} ${curr.y + dyOut * r}`;
+    }
+    d += ` L ${points[points.length - 1].x} ${points[points.length - 1].y}`;
+    edgePath = d;
+
+    labelX = (rightX + leftX) / 2;
+    labelY = belowY;
+    handleXPos = { x: labelX, y: belowY };
   } else {
     // Orthogonal stepped path with rounded corners — like plumbing pipes
     // Use actual measured widths when available
@@ -255,7 +298,7 @@ export default function DeletableEdge({
   }, [id]);
 
   const isGlowing = highlighted && !hovered;
-  let baseStroke = isLoop ? '#a78bfa' : (style.stroke || '#38bdf8'); // purple for loops
+  let baseStroke = style.stroke || '#38bdf8'; // same colour for all edges
   let edgeOpacity = 1;
 
   if (neitherInStage) {
@@ -316,7 +359,7 @@ export default function DeletableEdge({
           ...style,
           stroke: needsGradient ? `url(#${gradientId})` : strokeColor,
           strokeWidth: strokeW,
-          strokeDasharray: isLoop ? '6 4' : 'none',
+          strokeDasharray: 'none',
           opacity: needsGradient ? 1 : edgeOpacity,
           filter: isGlowing ? `url(#glow-${id})` : 'none',
           transition: 'opacity 500ms ease, stroke 0.15s, stroke-width 0.15s',
