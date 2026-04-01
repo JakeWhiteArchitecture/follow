@@ -851,6 +851,41 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
         nodes={styledNodes}
         edges={edges}
         onNodesChange={readOnly ? undefined : onNodesChange}
+        onNodeDragStop={readOnly ? undefined : (_, draggedNode) => {
+          // Snap-align: if the dragged node is close to aligning with another node, snap it
+          const SNAP_THRESHOLD = 15;
+          const storeNodes = useProjectStore.getState().nodes;
+          const pos = draggedNode.position;
+          let snapX = pos.x;
+          let snapY = pos.y;
+          let snappedX = false;
+          let snappedY = false;
+
+          for (const other of storeNodes) {
+            if (other.id === draggedNode.id) continue;
+            // Snap X alignment (left edges align)
+            if (!snappedX && Math.abs(other.position.x - pos.x) < SNAP_THRESHOLD) {
+              snapX = other.position.x;
+              snappedX = true;
+            }
+            // Snap Y alignment (top edges align)
+            if (!snappedY && Math.abs(other.position.y - pos.y) < SNAP_THRESHOLD) {
+              snapY = other.position.y;
+              snappedY = true;
+            }
+            if (snappedX && snappedY) break;
+          }
+
+          if (snappedX || snappedY) {
+            useProjectStore.setState((state) => ({
+              nodes: state.nodes.map((n) =>
+                n.id === draggedNode.id
+                  ? { ...n, position: { x: snapX, y: snapY } }
+                  : n
+              ),
+            }));
+          }
+        }}
         onEdgesChange={readOnly ? undefined : onEdgesChange}
         onConnect={readOnly ? undefined : onConnect}
         onConnectStart={readOnly ? undefined : onConnectStart}
