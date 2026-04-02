@@ -193,10 +193,56 @@ function EdgeChevron({ side, visible, onClick, label }) {
 // Approximate node dimensions for bounding box calculation
 const NODE_DIMS = { workPackage: { w: 180, h: 64 }, decision: { w: 180, h: 64 }, checkpoint: { w: 140, h: 46 } };
 
+function ModuleLabelEditable({ mod, borderColor, borderDown, updateModule }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(mod.label);
+  const inputRef = useRef(null);
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => { if (draft.trim()) updateModule(mod.id, { label: draft.trim() }); setEditing(false); }}
+        onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') { if (draft.trim()) updateModule(mod.id, { label: draft.trim() }); setEditing(false); } if (e.key === 'Escape') setEditing(false); }}
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{
+          position: 'absolute', top: -18, left: 4,
+          fontSize: 11, fontWeight: 600, color: '#e5e7eb',
+          background: '#2a2a3e', border: '1px solid #3b82f6', borderRadius: 2,
+          padding: '1px 4px', outline: 'none', width: 'auto', minWidth: 80,
+          pointerEvents: 'auto', zIndex: 10,
+        }}
+      />
+    );
+  }
+
+  return (
+    <span
+      onMouseDown={borderDown}
+      onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+      style={{
+        position: 'absolute', top: -16, left: 4,
+        fontSize: 11, fontWeight: 600,
+        color: borderColor, opacity: 0.7,
+        whiteSpace: 'nowrap', cursor: 'text',
+        pointerEvents: 'auto',
+      }}
+      title="Click to rename"
+    >
+      {mod.label}
+    </span>
+  );
+}
+
 function ModuleBackgrounds({ modules, nodes, viewport, onModuleClick, onModuleDragStart }) {
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
   const edges = useProjectStore((s) => s.edges);
   const edgeOffsets = useProjectStore((s) => s.edgeOffsets);
+  const updateModule = useProjectStore((s) => s.updateModule);
 
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
@@ -287,23 +333,8 @@ function ModuleBackgrounds({ modules, nodes, viewport, onModuleClick, onModuleDr
             <div onMouseDown={borderDown} style={{ ...borderStyle, bottom: -borderW/2, left: 0, right: 0, height: borderW }} />
             <div onMouseDown={borderDown} style={{ ...borderStyle, left: -borderW/2, top: 0, bottom: 0, width: borderW }} />
             <div onMouseDown={borderDown} style={{ ...borderStyle, right: -borderW/2, top: 0, bottom: 0, width: borderW }} />
-            {/* Label */}
-            <span
-              onMouseDown={borderDown}
-              style={{
-              position: 'absolute',
-              top: -16,
-              left: 4,
-              fontSize: Math.max(11, 9 / (viewport.zoom || 1)),
-              fontWeight: 600,
-              color: borderColor,
-              opacity: 0.7,
-              whiteSpace: 'nowrap',
-              cursor: 'pointer',
-              pointerEvents: 'auto',
-            }}>
-              {mod.label}
-            </span>
+            {/* Editable label */}
+            <ModuleLabelEditable mod={mod} borderColor={borderColor} borderDown={borderDown} updateModule={updateModule} />
           </div>
         );
       })}
