@@ -198,20 +198,77 @@ function NodeProperties() {
         <>
           <label style={labelStyle}>Pins</label>
           <div style={{ background: '#1e1e2e', border: '1px solid #2a2a3e', borderRadius: 4, padding: 8 }}>
-            {groups.map((group, gi) => (
+            {groups.map((group, gi) => {
+              const isMultiInput = Array.isArray(group.inputs) && group.inputs.length > 0;
+              const inputsList = isMultiInput ? group.inputs : [group.inputLabel || 'Input'];
+
+              return (
               <div key={group.id} style={{
                 marginBottom: gi < groups.length - 1 ? 8 : 0,
                 paddingBottom: gi < groups.length - 1 ? 8 : 0,
                 borderBottom: gi < groups.length - 1 ? '1px solid #2a2a3e' : 'none',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-                  <span style={{ fontSize: 10, color: '#6b7280', width: 14 }}>IN</span>
-                  <input style={{ ...inputStyle, padding: '3px 6px', fontSize: 11, flex: 1 }}
-                    value={group.inputLabel} onChange={(e) => updateGroup(node.id, group.id, { inputLabel: e.target.value })} disabled={readOnly} />
-                  {!readOnly && groups.length > 1 && (
-                    <button style={dangerBtnStyle} onClick={() => removeGroup(node.id, group.id)}>&times;</button>
-                  )}
-                </div>
+                {/* Mode toggle */}
+                {!readOnly && (
+                  <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+                    <button style={{ ...smallBtnStyle, flex: 1, fontSize: 9, background: !isMultiInput ? '#3a3a4e' : '#2a2a3e' }}
+                      onClick={() => {
+                        if (isMultiInput) {
+                          // Switch to single — use first input
+                          updateGroup(node.id, group.id, { inputLabel: group.inputs[0] || 'Input', inputs: undefined });
+                        }
+                      }}>Single In</button>
+                    <button style={{ ...smallBtnStyle, flex: 1, fontSize: 9, background: isMultiInput ? '#3a3a4e' : '#2a2a3e' }}
+                      onClick={() => {
+                        if (!isMultiInput) {
+                          // Switch to multi — convert inputLabel to array
+                          updateGroup(node.id, group.id, { inputs: [group.inputLabel || 'Input'], inputLabel: group.inputLabel || 'Input' });
+                        }
+                      }}>Multi In</button>
+                  </div>
+                )}
+
+                {/* Input pins */}
+                {isMultiInput ? (
+                  // Multi-input: editable list
+                  <>
+                    {group.inputs.map((inp, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+                        <span style={{ fontSize: 10, color: '#6b7280', width: 14 }}>IN</span>
+                        <input style={{ ...inputStyle, padding: '3px 6px', fontSize: 11, flex: 1 }}
+                          value={inp}
+                          onChange={(e) => {
+                            const newInputs = [...group.inputs];
+                            newInputs[idx] = e.target.value;
+                            updateGroup(node.id, group.id, { inputs: newInputs });
+                          }}
+                          disabled={readOnly} />
+                        {!readOnly && group.inputs.length > 1 && (
+                          <button style={dangerBtnStyle} onClick={() => {
+                            const newInputs = group.inputs.filter((_, i) => i !== idx);
+                            updateGroup(node.id, group.id, { inputs: newInputs });
+                          }}>&times;</button>
+                        )}
+                      </div>
+                    ))}
+                    {!readOnly && (
+                      <button style={{ ...smallBtnStyle, marginLeft: 14, marginTop: 2 }}
+                        onClick={() => updateGroup(node.id, group.id, { inputs: [...group.inputs, 'New input'] })}>+ input</button>
+                    )}
+                  </>
+                ) : (
+                  // Single input
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+                    <span style={{ fontSize: 10, color: '#6b7280', width: 14 }}>IN</span>
+                    <input style={{ ...inputStyle, padding: '3px 6px', fontSize: 11, flex: 1 }}
+                      value={group.inputLabel || ''} onChange={(e) => updateGroup(node.id, group.id, { inputLabel: e.target.value })} disabled={readOnly} />
+                    {!readOnly && groups.length > 1 && (
+                      <button style={dangerBtnStyle} onClick={() => removeGroup(node.id, group.id)}>&times;</button>
+                    )}
+                  </div>
+                )}
+
+                {/* Outputs — unchanged */}
                 {group.outputs.map((out) => (
                   <div key={out.id} style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 14, marginTop: 2 }}>
                     <span style={{ fontSize: 10, color: '#9ca3af', width: 24 }}>OUT</span>
@@ -226,7 +283,8 @@ function NodeProperties() {
                   <button style={{ ...smallBtnStyle, marginLeft: 14, marginTop: 4 }} onClick={() => addOutputToGroup(node.id, group.id)}>+ output</button>
                 )}
               </div>
-            ))}
+              );
+            })}
             {!readOnly && (
               <button style={{ ...smallBtnStyle, marginTop: 8, width: '100%' }} onClick={() => addGroupToNode(node.id)}>+ input group</button>
             )}
