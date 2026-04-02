@@ -284,18 +284,18 @@ export default function WorkPackageNode({ id, data, selected }) {
     >
       {/* Row 1 — Header bar (type colour) */}
       <div style={{
-        height: headerH,
+        minHeight: headerH,
         background: headerColor,
         borderRadius: '2px 2px 0 0',
         display: 'flex',
         alignItems: 'center',
-        padding: '0 8px',
+        padding: '3px 8px',
       }}>
         <div style={{ flex: 1, overflow: 'hidden' }}>
           {readOnly ? (
             <span style={{
               fontSize: 10, fontWeight: 700, color: '#fff',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              wordBreak: 'break-word', lineHeight: 1.3,
               display: 'block',
             }}>
               {data.label}
@@ -306,7 +306,7 @@ export default function WorkPackageNode({ id, data, selected }) {
               onChange={(val) => updateNodeData(id, { label: val })}
               style={{
                 fontSize: 10, fontWeight: 700, color: '#fff',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                wordBreak: 'break-word', lineHeight: 1.3,
                 display: 'block',
               }}
               inputStyle={{

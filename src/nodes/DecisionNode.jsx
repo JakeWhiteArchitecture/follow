@@ -92,24 +92,24 @@ export default function DecisionNode({ id, data, selected }) {
 
       {/* Row 1 — Header bar (type colour) */}
       <div style={{
-        height: HEADER_H,
+        minHeight: HEADER_H,
         background: headerColor,
         borderRadius: '2px 2px 0 0',
         display: 'flex',
         alignItems: 'center',
-        padding: '0 8px',
+        padding: '3px 8px',
       }}>
         <div style={{ flex: 1, overflow: 'hidden' }}>
           {readOnly ? (
             <span style={{
               fontSize: 10, fontWeight: 700, color: '#fff',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block',
+              wordBreak: 'break-word', lineHeight: 1.3, display: 'block',
             }}>{data.label}</span>
           ) : (
             <InlineEdit value={data.label}
               onChange={(val) => updateNodeData(id, { label: val })}
               style={{ fontSize: 10, fontWeight: 700, color: '#fff',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}
+                wordBreak: 'break-word', lineHeight: 1.3, display: 'block' }}
               inputStyle={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontWeight: 700 }}
             />
           )}

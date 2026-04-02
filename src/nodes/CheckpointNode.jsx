@@ -78,21 +78,21 @@ export default function CheckpointNode({ id, data, selected }) {
 
       {/* Row 1 — Header bar */}
       <div style={{
-        height: HEADER_H,
+        minHeight: HEADER_H,
         background: headerColor,
         display: 'flex',
         alignItems: 'center',
-        padding: '0 8px',
+        padding: '3px 8px',
       }}>
         <div style={{
           fontSize: 10, fontWeight: 700, color: '#fff',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          wordBreak: 'break-word', lineHeight: 1.3,
           flex: 1,
         }}>
           {readOnly ? data.label : (
             <InlineEdit value={data.label}
               onChange={(val) => updateNodeData(id, { label: val })}
-              style={{ fontSize: 10, fontWeight: 700, color: '#fff' }}
+              style={{ fontSize: 10, fontWeight: 700, color: '#fff', wordBreak: 'break-word', lineHeight: 1.3 }}
               inputStyle={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff' }}
             />
           )}
