@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -27,6 +27,16 @@ export default function DeletableEdge({
   const [hovered, setHovered] = useState(false);
   const [handleHovered, setHandleHovered] = useState(false);
   const [dragging, setDragging] = useState(false);
+
+  // Safety: clear stuck drag state on any click
+  useEffect(() => {
+    if (!dragging) return;
+    const clearStuck = () => { setDragging(false); setHovered(false); setHandleHovered(false); };
+    const timer = setTimeout(() => {
+      window.addEventListener('mousedown', clearStuck, { once: true });
+    }, 100);
+    return () => { clearTimeout(timer); window.removeEventListener('mousedown', clearStuck); };
+  }, [dragging]);
   const dragStartRef = useRef(null);
   const readOnly = useProjectStore((s) => s.readOnly);
   const deleteEdge = useProjectStore((s) => s.deleteEdge);
@@ -359,8 +369,8 @@ export default function DeletableEdge({
           ...style,
           stroke: needsGradient ? `url(#${gradientId})` : strokeColor,
           strokeWidth: strokeW,
-          strokeDasharray: '8 4',
-          animation: 'dash-flow 0.6s linear infinite',
+          strokeDasharray: '12 8',
+          animation: 'dash-flow 0.8s linear infinite',
           opacity: needsGradient ? 1 : edgeOpacity,
           filter: isGlowing ? `url(#glow-${id})` : 'none',
           transition: 'opacity 500ms ease, stroke 0.15s, stroke-width 0.15s',

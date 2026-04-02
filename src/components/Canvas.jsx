@@ -967,6 +967,8 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
         nodesDraggable={!readOnly}
         nodesConnectable={!readOnly}
         elementsSelectable
+        minZoom={0.05}
+        maxZoom={4}
         style={{ background: 'transparent', zIndex: 1 }}
       >
         <Background gap={20} size={1} color="#2a2a3e" style={{ opacity: 0.5 }} />
