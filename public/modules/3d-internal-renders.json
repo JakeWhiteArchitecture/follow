@@ -1,0 +1,80 @@
+{
+  "module": {
+    "label": "3D Internal Renders Approval",
+    "stage": 2,
+    "layout_direction": "horizontal",
+    "entry_node": "m_n1",
+    "exit_node": "m_n8",
+    "nodes": [
+      {
+        "id": "m_n1",
+        "type": "work_package",
+        "label": "Client Room-by-Room Brief",
+        "role": null,
+        "inputs": ["Client Input"],
+        "outputs": ["Room Brief"]
+      },
+      {
+        "id": "m_n2",
+        "type": "work_package",
+        "label": "Build 3D Model",
+        "role": null,
+        "inputs": ["Room Brief"],
+        "outputs": ["3D Model"]
+      },
+      {
+        "id": "m_n3",
+        "type": "work_package",
+        "label": "Apply Materials & Lighting",
+        "role": null,
+        "inputs": ["3D Model"],
+        "outputs": ["Textured Model"]
+      },
+      {
+        "id": "m_n4",
+        "type": "work_package",
+        "label": "Produce Internal Renders",
+        "role": null,
+        "inputs": ["Textured Model"],
+        "outputs": ["Render Set"]
+      },
+      {
+        "id": "m_n5",
+        "type": "work_package",
+        "label": "Client Review",
+        "role": null,
+        "inputs": ["Render Set"],
+        "outputs": ["Client Feedback"]
+      },
+      {
+        "id": "m_n6",
+        "type": "decision",
+        "label": "Amendments Required?",
+        "outputs": ["Yes", "No"]
+      },
+      {
+        "id": "m_n7",
+        "type": "work_package",
+        "label": "Amend Model & Re-render",
+        "role": null,
+        "inputs": ["Amendment Notes"],
+        "outputs": ["Revised Renders"]
+      },
+      {
+        "id": "m_n8",
+        "type": "checkpoint",
+        "label": "Renders Signed Off"
+      }
+    ],
+    "edges": [
+      { "source": "m_n1", "target": "m_n2" },
+      { "source": "m_n2", "target": "m_n3" },
+      { "source": "m_n3", "target": "m_n4" },
+      { "source": "m_n4", "target": "m_n5" },
+      { "source": "m_n5", "target": "m_n6" },
+      { "source": "m_n6", "target": "m_n7" },
+      { "source": "m_n6", "target": "m_n8" },
+      { "source": "m_n7", "target": "m_n5" }
+    ]
+  }
+}

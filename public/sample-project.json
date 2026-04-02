@@ -1,0 +1,248 @@
+{
+  "follow_version": "0.1",
+  "project": {
+    "name": "Smith Rear Extension",
+    "client": "Mr & Mrs Smith",
+    "address": "14 Acacia Avenue, Haywards Heath",
+    "created": "2026-03-25",
+    "stages": {
+      "0": { "active": true, "in_appointment": true, "width": 280 },
+      "1": { "active": true, "in_appointment": true, "width": 300 },
+      "2": { "active": true, "in_appointment": true, "width": 300 },
+      "3": { "active": true, "in_appointment": true, "width": 320 },
+      "4": { "active": true, "in_appointment": true, "width": 300 },
+      "5": { "active": true, "in_appointment": false, "width": 240 },
+      "6": { "active": true, "in_appointment": false, "width": 200 },
+      "7": { "active": true, "in_appointment": false, "width": 200 }
+    },
+    "contacts": [
+      { "id": "c01", "name": "Jake White", "org": "Jake White Architecture", "discipline": "Architect / Principal Designer" },
+      { "id": "c02", "name": "Sarah Chen", "org": "Chen Structural", "discipline": "Structural Engineer" },
+      { "id": "c03", "name": null, "org": null, "discipline": "Building Control", "unassigned": true },
+      { "id": "c04", "name": "Mr & Mrs Smith", "org": null, "discipline": "Client" },
+      { "id": "c05", "name": "GeoTest Ltd", "org": "GeoTest", "discipline": "Geotechnical" }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "label": "Client Brief",
+      "type": "work_package",
+      "stage": 0,
+      "role": "c04",
+      "status": "complete",
+      "position": { "x": 40, "y": 80 },
+      "notes": "Initial brief discussion and site visit.",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g001",
+          "inputLabel": "Client Requirements",
+          "outputs": [
+            { "id": "o001", "label": "Brief Document" },
+            { "id": "o002", "label": "Budget Envelope" }
+          ]
+        }
+      ],
+      "history": [{ "event": "created", "timestamp": "2026-03-25T09:00:00Z" }]
+    },
+    {
+      "id": "node_002",
+      "label": "Site Survey",
+      "type": "work_package",
+      "stage": 0,
+      "role": "c01",
+      "status": "complete",
+      "position": { "x": 40, "y": 280 },
+      "notes": "Measured survey of existing property.",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g002",
+          "inputLabel": "Site Access",
+          "outputs": [
+            { "id": "o003", "label": "Measured Survey" },
+            { "id": "o004", "label": "Site Photos" },
+            { "id": "o005", "label": "Constraints Plan" }
+          ]
+        }
+      ],
+      "history": [{ "event": "created", "timestamp": "2026-03-25T09:00:00Z" }]
+    },
+    {
+      "id": "node_003",
+      "label": "Soil Investigation",
+      "type": "work_package",
+      "stage": 1,
+      "role": "c05",
+      "status": "complete",
+      "position": { "x": 340, "y": 400 },
+      "notes": "Trial pits and soil analysis for foundation design.",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g003",
+          "inputLabel": "Site Location",
+          "outputs": [
+            { "id": "o006", "label": "Soil Test Results" },
+            { "id": "o007", "label": "Bearing Capacity" },
+            { "id": "o008", "label": "Water Table Level" }
+          ]
+        }
+      ],
+      "history": [{ "event": "created", "timestamp": "2026-03-25T09:00:00Z" }]
+    },
+    {
+      "id": "node_004",
+      "label": "Feasibility Study",
+      "type": "work_package",
+      "stage": 1,
+      "role": "c01",
+      "status": "active",
+      "position": { "x": 340, "y": 80 },
+      "notes": "Options appraisal for rear extension.",
+      "target_date": "2026-04-15",
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g004a",
+          "inputLabel": "Brief Document",
+          "outputs": [
+            { "id": "o009", "label": "Options Report" }
+          ]
+        },
+        {
+          "id": "g004b",
+          "inputLabel": "Measured Survey",
+          "outputs": [
+            { "id": "o010", "label": "Feasibility Layouts" },
+            { "id": "o011", "label": "Planning Assessment" }
+          ]
+        }
+      ],
+      "history": [{ "event": "created", "timestamp": "2026-03-25T09:00:00Z" }]
+    },
+    {
+      "id": "node_005",
+      "label": "Concept Design",
+      "type": "work_package",
+      "stage": 2,
+      "role": "c01",
+      "status": "pending",
+      "position": { "x": 660, "y": 80 },
+      "notes": "Developed concept based on feasibility outcome.",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [
+        {
+          "id": "g005a",
+          "inputLabel": "Options Report",
+          "outputs": [
+            { "id": "o012", "label": "Arch Layout Stage 2" },
+            { "id": "o013", "label": "Design Statement" }
+          ]
+        },
+        {
+          "id": "g005b",
+          "inputLabel": "Constraints Plan",
+          "outputs": [
+            { "id": "o014", "label": "Planning Drawings" }
+          ]
+        }
+      ],
+      "history": [{ "event": "created", "timestamp": "2026-03-25T09:00:00Z" }]
+    },
+    {
+      "id": "node_006",
+      "label": "Client Sign-Off",
+      "type": "checkpoint",
+      "stage": 2,
+      "role": "c04",
+      "status": "pending",
+      "position": { "x": 700, "y": 300 },
+      "notes": "Client approval of concept design before proceeding.",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [],
+      "history": [{ "event": "created", "timestamp": "2026-03-25T09:00:00Z" }]
+    },
+    {
+      "id": "node_007",
+      "label": "SE Feasibility Study",
+      "type": "work_package",
+      "stage": 3,
+      "role": "c02",
+      "status": "pending",
+      "position": { "x": 1000, "y": 100 },
+      "notes": "Structural feasibility based on architectural concept and soil data.",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [{ "type": "architectural_layout", "label": "Arch Layout Stage 2" }],
+      "groups": [
+        {
+          "id": "g007a",
+          "inputLabel": "Arch Layout Stage 2",
+          "outputs": [
+            { "id": "o015", "label": "Structural Strategy" },
+            { "id": "o016", "label": "Beam Sizes" }
+          ]
+        },
+        {
+          "id": "g007b",
+          "inputLabel": "Soil Test Results",
+          "outputs": [
+            { "id": "o017", "label": "Foundation Depths" },
+            { "id": "o018", "label": "Heave Protection" },
+            { "id": "o019", "label": "Raft Foundation Y/N" }
+          ]
+        },
+        {
+          "id": "g007c",
+          "inputLabel": "Water Table Level",
+          "outputs": [
+            { "id": "o020", "label": "Waterproofing Spec" }
+          ]
+        }
+      ],
+      "history": [{ "event": "created", "timestamp": "2026-03-25T09:00:00Z" }]
+    },
+    {
+      "id": "node_008",
+      "label": "Planning Submission",
+      "type": "checkpoint",
+      "stage": 3,
+      "role": "c01",
+      "status": "pending",
+      "position": { "x": 1040, "y": 400 },
+      "notes": "Full planning application submission.",
+      "target_date": null,
+      "linked_docs": [],
+      "typical_inputs": [],
+      "groups": [],
+      "history": [{ "event": "created", "timestamp": "2026-03-25T09:00:00Z" }]
+    }
+  ],
+  "edges": [
+    { "id": "edge_001", "source": "node_001", "source_handle": "output-g001-o001", "target": "node_004", "target_handle": "input-g004a" },
+    { "id": "edge_002", "source": "node_002", "source_handle": "output-g002-o003", "target": "node_004", "target_handle": "input-g004b" },
+    { "id": "edge_002b", "source": "node_002", "source_handle": "output-g002-o005", "target": "node_005", "target_handle": "input-g005b" },
+    { "id": "edge_003", "source": "node_002", "source_handle": "output-g002-o005", "target": "node_003", "target_handle": "input-g003" },
+    { "id": "edge_004", "source": "node_004", "source_handle": "output-g004a-o009", "target": "node_005", "target_handle": "input-g005a" },
+    { "id": "edge_005", "source": "node_005", "source_handle": "output-g005a-o012", "target": "node_006", "target_handle": "input" },
+    { "id": "edge_006", "source": "node_005", "source_handle": "output-g005a-o012", "target": "node_007", "target_handle": "input-g007a" },
+    { "id": "edge_007", "source": "node_003", "source_handle": "output-g003-o006", "target": "node_007", "target_handle": "input-g007b" },
+    { "id": "edge_008", "source": "node_003", "source_handle": "output-g003-o008", "target": "node_007", "target_handle": "input-g007c" },
+    { "id": "edge_009", "source": "node_005", "source_handle": "output-g005b-o014", "target": "node_008", "target_handle": "input" },
+    { "id": "edge_010", "source": "node_006", "source_handle": "output", "target": "node_008", "target_handle": "input" }
+  ],
+  "canvas": { "zoom": 1.0, "pan_x": 0, "pan_y": 0 }
+}
