@@ -86,15 +86,35 @@ function ModuleImportSection() {
 
   const handleClear = () => { setJsonText(''); setParsed(null); setError(''); pendingModuleRef.current = null; };
 
+  const handleFileDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer?.files?.[0];
+    if (!file || !file.name.endsWith('.json')) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setJsonText(ev.target.result);
+      setError('');
+      setParsed(null);
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div>
       <div style={{ fontWeight: 600, fontSize: 11, color: '#9ca3af', marginBottom: 6 }}>Import Module</div>
-      <textarea
-        style={{ ...inputStyle, minHeight: 70, resize: 'vertical', fontSize: 10, fontFamily: 'monospace', border: error ? '1px solid #ef4444' : '1px solid #3a3a4e' }}
-        placeholder='Paste module JSON...'
-        value={jsonText}
-        onChange={(e) => { setJsonText(e.target.value); setError(''); setParsed(null); }}
-      />
+      <div
+        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
+        onDrop={handleFileDrop}
+        style={{ position: 'relative' }}
+      >
+        <textarea
+          style={{ ...inputStyle, minHeight: 70, resize: 'vertical', fontSize: 10, fontFamily: 'monospace', border: error ? '1px solid #ef4444' : '1px solid #3a3a4e' }}
+          placeholder='Paste or drop a .json file here...'
+          value={jsonText}
+          onChange={(e) => { setJsonText(e.target.value); setError(''); setParsed(null); }}
+        />
+      </div>
       {error && <div style={{ fontSize: 10, color: '#ef4444', marginTop: 4 }}>{error}</div>}
       <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
         <button style={{ ...smallBtnStyle, flex: 1 }} onClick={handleParse}>Parse</button>
@@ -234,6 +254,92 @@ function NodeProperties() {
         }}>Delete Node</button>
       )}
     </>
+  );
+}
+
+function ModulesList() {
+  const modules = useProjectStore((s) => s.modules);
+  const nodes = useProjectStore((s) => s.nodes);
+  const updateModule = useProjectStore((s) => s.updateModule);
+  const deleteModule = useProjectStore((s) => s.deleteModule);
+  const selectNode = useProjectStore((s) => s.selectNode);
+  const [editingId, setEditingId] = useState(null);
+  const [editLabel, setEditLabel] = useState('');
+
+  if (modules.length === 0) return null;
+
+  const startEdit = (mod) => {
+    setEditingId(mod.id);
+    setEditLabel(mod.label);
+  };
+
+  const commitEdit = () => {
+    if (editLabel.trim() && editingId) {
+      updateModule(editingId, { label: editLabel.trim() });
+    }
+    setEditingId(null);
+  };
+
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        Modules ({modules.length})
+      </div>
+      {modules.map((mod) => {
+        const memberCount = mod.members.filter((id) => nodes.find((n) => n.id === id)).length;
+        return (
+          <div key={mod.id} style={{
+            background: '#1e1e2e', border: '1px solid #2a2a3e', borderRadius: 4,
+            padding: '5px 8px', marginBottom: 3, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}
+            onClick={() => {
+              // Select the first member to navigate to it
+              const firstMember = mod.members.find((id) => nodes.find((n) => n.id === id));
+              if (firstMember) selectNode(firstMember);
+            }}
+          >
+            <div style={{
+              width: 4, height: 20, borderRadius: 2,
+              background: mod.stroke || '#c8c4bc', flexShrink: 0,
+            }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {editingId === mod.id ? (
+                <input
+                  autoFocus
+                  value={editLabel}
+                  onChange={(e) => setEditLabel(e.target.value)}
+                  onBlur={commitEdit}
+                  onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingId(null); }}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ ...inputStyle, padding: '1px 4px', fontSize: 10 }}
+                />
+              ) : (
+                <div
+                  onDoubleClick={(e) => { e.stopPropagation(); startEdit(mod); }}
+                  style={{
+                    fontSize: 10, fontWeight: 600, color: '#d1d5db',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}
+                  title="Double-click to rename"
+                >
+                  {mod.label}
+                </div>
+              )}
+              <div style={{ fontSize: 8, color: '#4b5563' }}>{memberCount} nodes</div>
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirm(`Delete module "${mod.label}"? Nodes will remain.`)) deleteModule(mod.id);
+              }}
+              style={{ background: 'none', border: 'none', color: '#4b5563', cursor: 'pointer', fontSize: 12, padding: 0 }}
+              title="Delete module"
+            >×</button>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -426,6 +532,7 @@ export default function PropertiesPanel({ addMode, setAddMode }) {
         </>
       ) : (
         <>
+          <ModulesList />
           <UnassignedNodesList />
           {!readOnly && (
             <>
