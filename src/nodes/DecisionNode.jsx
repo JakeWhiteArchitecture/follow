@@ -61,6 +61,9 @@ export default function DecisionNode({ id, data, selected }) {
   const flipped = data.flipped || false;
   const outputs = data.groups?.[0]?.outputs || [];
   const groupId = data.groups?.[0]?.id || 'g0';
+  const contacts = useProjectStore((s) => s.project.project.contacts);
+  const contact = contacts.find((c) => c.id === data.role);
+  const roleName = contact ? (contact.discipline || contact.name) : null;
 
   const outputsH = Math.max(1, outputs.length) * OUTPUT_ROW_H;
   const totalH = HEADER_H + STATUS_BAR_H + outputsH + PADDING;
@@ -135,6 +138,16 @@ export default function DecisionNode({ id, data, selected }) {
         }}>
           {data.status}
         </span>
+        {roleName && (
+          <span style={{ fontSize: 8, color: '#6b7280', marginLeft: 'auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {roleName}
+          </span>
+        )}
+        {!roleName && (
+          <span style={{ fontSize: 8, color: '#ef4444', fontStyle: 'italic', marginLeft: 'auto' }}>
+            Unassigned
+          </span>
+        )}
       </div>
 
       {/* ◇ type indicator in body */}

@@ -54,6 +54,9 @@ export default function CheckpointNode({ id, data, selected }) {
   const updateNodeData = useProjectStore((s) => s.updateNodeData);
   const readOnly = useProjectStore((s) => s.readOnly);
   const isChainGlow = highlighted && selectedNode !== id;
+  const contacts = useProjectStore((s) => s.project.project.contacts);
+  const contact = contacts.find((c) => c.id === data.role);
+  const roleName = contact ? (contact.discipline || contact.name) : null;
 
   const totalH = HEADER_H + STATUS_BAR_H + 4;
 
@@ -118,6 +121,16 @@ export default function CheckpointNode({ id, data, selected }) {
         }}>
           {data.status}
         </span>
+        {roleName && (
+          <span style={{ fontSize: 8, color: '#6b7280', marginLeft: 'auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {roleName}
+          </span>
+        )}
+        {!roleName && (
+          <span style={{ fontSize: 8, color: '#ef4444', fontStyle: 'italic', marginLeft: 'auto' }}>
+            Unassigned
+          </span>
+        )}
       </div>
 
       <Handle type="source" position={Position.Right} id="output"

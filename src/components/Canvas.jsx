@@ -195,6 +195,8 @@ const NODE_DIMS = { workPackage: { w: 180, h: 64 }, decision: { w: 180, h: 64 },
 
 function ModuleBackgrounds({ modules, nodes, viewport, onModuleClick, onModuleDragStart }) {
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+  const edges = useProjectStore((s) => s.edges);
+  const edgeOffsets = useProjectStore((s) => s.edgeOffsets);
 
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
@@ -202,13 +204,51 @@ function ModuleBackgrounds({ modules, nodes, viewport, onModuleClick, onModuleDr
         const memberNodes = mod.members.map((id) => nodeMap.get(id)).filter(Boolean);
         if (memberNodes.length === 0) return null;
 
+        const memberIds = new Set(mod.members);
+
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         memberNodes.forEach((n) => {
-          const dims = NODE_DIMS[n.type] || NODE_DIMS.workPackage;
+          const w = n.measured?.width || NODE_DIMS[n.type]?.w || 180;
+          const h = n.measured?.height || NODE_DIMS[n.type]?.h || 64;
           minX = Math.min(minX, n.position.x);
           minY = Math.min(minY, n.position.y);
-          maxX = Math.max(maxX, n.position.x + dims.w);
-          maxY = Math.max(maxY, n.position.y + dims.h);
+          maxX = Math.max(maxX, n.position.x + w);
+          maxY = Math.max(maxY, n.position.y + h);
+        });
+
+        // Expand bounding box to include edge geometry
+        // Edges between module members may route outside the node bbox
+        edges.forEach((e) => {
+          if (!memberIds.has(e.source) || !memberIds.has(e.target)) return;
+          const srcNode = nodeMap.get(e.source);
+          const tgtNode = nodeMap.get(e.target);
+          if (!srcNode || !tgtNode) return;
+
+          const srcW = srcNode.measured?.width || 180;
+          const srcH = srcNode.measured?.height || 64;
+          const tgtH = tgtNode.measured?.height || 64;
+          const off = edgeOffsets[e.id];
+          const offX = (typeof off === 'object' ? off?.x : (off || 0)) || 0;
+          const offY = (typeof off === 'object' ? off?.y : 0) || 0;
+
+          // U-path stub goes right of source
+          const stubX = srcNode.position.x + srcW + 20;
+          maxX = Math.max(maxX, stubX + offX);
+
+          // U-path midY goes below/above nodes
+          const srcBot = srcNode.position.y + srcH;
+          const tgtBot = tgtNode.position.y + tgtH;
+          maxY = Math.max(maxY, srcBot + 20 + Math.max(0, offY));
+          maxY = Math.max(maxY, tgtBot + 20 + Math.max(0, offY));
+
+          // Loop edges go below
+          if (e.data?.loop) {
+            maxY = Math.max(maxY, Math.max(srcBot, tgtBot) + 50);
+          }
+
+          // U-path vertX goes left of target
+          const vertX = tgtNode.position.x - 20 + offX;
+          minX = Math.min(minX, vertX);
         });
 
         const pad = mod.padding || 40;
