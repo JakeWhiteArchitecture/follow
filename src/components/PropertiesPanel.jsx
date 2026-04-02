@@ -200,7 +200,6 @@ function NodeProperties() {
           <div style={{ background: '#1e1e2e', border: '1px solid #2a2a3e', borderRadius: 4, padding: 8 }}>
             {groups.map((group, gi) => {
               const isMultiInput = Array.isArray(group.inputs) && group.inputs.length > 0;
-              const inputsList = isMultiInput ? group.inputs : [group.inputLabel || 'Input'];
 
               return (
               <div key={group.id} style={{
@@ -208,29 +207,8 @@ function NodeProperties() {
                 paddingBottom: gi < groups.length - 1 ? 8 : 0,
                 borderBottom: gi < groups.length - 1 ? '1px solid #2a2a3e' : 'none',
               }}>
-                {/* Mode toggle */}
-                {!readOnly && (
-                  <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
-                    <button style={{ ...smallBtnStyle, flex: 1, fontSize: 9, background: !isMultiInput ? '#3a3a4e' : '#2a2a3e' }}
-                      onClick={() => {
-                        if (isMultiInput) {
-                          // Switch to single — use first input
-                          updateGroup(node.id, group.id, { inputLabel: group.inputs[0] || 'Input', inputs: undefined });
-                        }
-                      }}>Single In</button>
-                    <button style={{ ...smallBtnStyle, flex: 1, fontSize: 9, background: isMultiInput ? '#3a3a4e' : '#2a2a3e' }}
-                      onClick={() => {
-                        if (!isMultiInput) {
-                          // Switch to multi — convert inputLabel to array
-                          updateGroup(node.id, group.id, { inputs: [group.inputLabel || 'Input'], inputLabel: group.inputLabel || 'Input' });
-                        }
-                      }}>Multi In</button>
-                  </div>
-                )}
-
                 {/* Input pins */}
                 {isMultiInput ? (
-                  // Multi-input: editable list
                   <>
                     {group.inputs.map((inp, idx) => (
                       <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
@@ -257,7 +235,6 @@ function NodeProperties() {
                     )}
                   </>
                 ) : (
-                  // Single input
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
                     <span style={{ fontSize: 10, color: '#6b7280', width: 14 }}>IN</span>
                     <input style={{ ...inputStyle, padding: '3px 6px', fontSize: 11, flex: 1 }}
@@ -268,7 +245,7 @@ function NodeProperties() {
                   </div>
                 )}
 
-                {/* Outputs — unchanged */}
+                {/* Outputs */}
                 {group.outputs.map((out) => (
                   <div key={out.id} style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 14, marginTop: 2 }}>
                     <span style={{ fontSize: 10, color: '#9ca3af', width: 24 }}>OUT</span>
@@ -287,6 +264,69 @@ function NodeProperties() {
             })}
             {!readOnly && (
               <button style={{ ...smallBtnStyle, marginTop: 8, width: '100%' }} onClick={() => addGroupToNode(node.id)}>+ input group</button>
+            )}
+
+            {/* Merge buttons */}
+            {!readOnly && groups.length > 1 && (
+              <div style={{ marginTop: 8, display: 'flex', gap: 4 }}>
+                <button style={{ ...smallBtnStyle, flex: 1, fontSize: 9 }}
+                  onClick={() => {
+                    // Merge all incoming pins into one group
+                    const allInputs = groups.flatMap((g) =>
+                      Array.isArray(g.inputs) ? g.inputs : [g.inputLabel || 'Input']
+                    );
+                    // Ask which label to keep for the output
+                    const allOutputLabels = groups.flatMap((g) => (g.outputs || []).map((o) => o.label));
+                    let keepLabel = allOutputLabels[0] || data.label;
+                    if (allOutputLabels.length > 1) {
+                      const choice = prompt(
+                        `Which output label to keep?\n${allOutputLabels.map((l, i) => `${i + 1}. ${l}`).join('\n')}\n\nEnter number:`
+                      );
+                      const idx = parseInt(choice) - 1;
+                      if (idx >= 0 && idx < allOutputLabels.length) keepLabel = allOutputLabels[idx];
+                      else if (choice === null) return;
+                    }
+                    // Merge into first group
+                    const firstGroup = groups[0];
+                    const mergedOutputId = firstGroup.outputs?.[0]?.id || `o_${Date.now()}`;
+                    updateNodeData(node.id, {
+                      groups: [{
+                        id: firstGroup.id,
+                        inputs: allInputs,
+                        inputLabel: allInputs[0],
+                        outputs: [{ id: mergedOutputId, label: keepLabel }],
+                      }],
+                    });
+                  }}>Merge incoming</button>
+                <button style={{ ...smallBtnStyle, flex: 1, fontSize: 9 }}
+                  onClick={() => {
+                    // Merge all outgoing pins into one group
+                    const allOutputs = groups.flatMap((g) => (g.outputs || []).map((o) => o.label));
+                    const allInputLabels = groups.map((g) =>
+                      Array.isArray(g.inputs) ? g.inputs[0] : (g.inputLabel || 'Input')
+                    );
+                    let keepLabel = allInputLabels[0] || 'Input';
+                    if (allInputLabels.length > 1) {
+                      const choice = prompt(
+                        `Which input label to keep?\n${allInputLabels.map((l, i) => `${i + 1}. ${l}`).join('\n')}\n\nEnter number:`
+                      );
+                      const idx = parseInt(choice) - 1;
+                      if (idx >= 0 && idx < allInputLabels.length) keepLabel = allInputLabels[idx];
+                      else if (choice === null) return;
+                    }
+                    const firstGroup = groups[0];
+                    updateNodeData(node.id, {
+                      groups: [{
+                        id: firstGroup.id,
+                        inputLabel: keepLabel,
+                        outputs: allOutputs.map((label, i) => ({
+                          id: firstGroup.outputs?.[i]?.id || `o_${Date.now()}_${i}`,
+                          label,
+                        })),
+                      }],
+                    });
+                  }}>Merge outgoing</button>
+              </div>
             )}
           </div>
         </>

@@ -762,7 +762,11 @@ function CanvasInner({ currentStage, setCurrentStage, addMode, setAddMode, stage
     let dropStage = mod.stage;
     if (dropStage === undefined || dropStage === null) {
       if (viewAll) {
-        const input = prompt('Which stage should this module be assigned to? (0-7)');
+        const stageOpts = Object.keys(stages).sort().map((k) => {
+          const s = RIBA_STAGES.find((r) => r.key === k);
+          return `${k}: ${s?.label || 'Stage ' + k}`;
+        }).join('\n');
+        const input = prompt(`Select stage for this module:\n\n${stageOpts}\n\nEnter stage number:`);
         if (input === null) return;
         dropStage = parseInt(input) || 0;
       } else {
