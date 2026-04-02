@@ -272,8 +272,10 @@ const useProjectStore = create((set, get) => ({
 
     const testEdges = [...edges, newEdge];
     if (detectCycle(nodes, testEdges)) {
-      alert('Circular dependency detected. This connection is not allowed.');
-      return;
+      if (!confirm('This creates a circular dependency (loop). Is this intentional?\n\nClick OK to create a loop edge, or Cancel to abort.')) {
+        return;
+      }
+      newEdge.data = { ...newEdge.data, loop: true };
     }
 
     // Auto-name: if target input still has a default label, rename it from the source output

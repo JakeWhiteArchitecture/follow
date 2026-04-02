@@ -291,7 +291,7 @@ export default function WorkPackageNode({ id, data, selected }) {
         alignItems: 'center',
         padding: '3px 8px',
       }}>
-        <div style={{ flex: 1, overflow: 'hidden' }}>
+        <div style={{ flex: 1 }}>
           {readOnly ? (
             <span style={{
               fontSize: 10, fontWeight: 700, color: '#fff',
