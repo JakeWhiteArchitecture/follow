@@ -73,7 +73,9 @@ function PinGroup({ nodeId, group, colors, readOnly, isLast, flipped }) {
   const updateOutput = useProjectStore((s) => s.updateOutput);
 
   const outputs = group.outputs || [];
-  const rowCount = Math.max(1, outputs.length);
+  // Support multi-input: group.inputs array or fallback to single inputLabel
+  const inputs = group.inputs || [group.inputLabel || 'Input'];
+  const rowCount = Math.max(1, inputs.length, outputs.length);
 
   return (
     <div style={{
@@ -86,28 +88,42 @@ function PinGroup({ nodeId, group, colors, readOnly, isLast, flipped }) {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center',
           minHeight: rowCount * 18,
           paddingLeft: flipped ? 6 : PIN_SIZE + 4,
           paddingRight: flipped ? PIN_SIZE + 4 : 6,
           textAlign: flipped ? 'right' : 'left',
+          justifyContent: inputs.length <= 1 ? 'center' : 'flex-start',
         }}>
-          <div style={{
-            fontSize: 9,
-            color: '#d1d5db',
-            lineHeight: 1.3,
-            wordBreak: 'break-word',
-          }}>
-            {readOnly ? (
-              <span>{group.inputLabel || 'Input'}</span>
-            ) : (
-              <InlineEdit
-                value={group.inputLabel || 'Input'}
-                onChange={(val) => updateGroup(nodeId, group.id, { inputLabel: val })}
-                style={{ fontSize: 10, color: '#d1d5db' }}
-              />
-            )}
-          </div>
+          {inputs.length <= 1 ? (
+            // Single input — existing behaviour
+            <div style={{ fontSize: 9, color: '#d1d5db', lineHeight: 1.3, wordBreak: 'break-word' }}>
+              {readOnly ? (
+                <span>{inputs[0]}</span>
+              ) : (
+                <InlineEdit
+                  value={inputs[0]}
+                  onChange={(val) => updateGroup(nodeId, group.id, { inputLabel: val })}
+                  style={{ fontSize: 10, color: '#d1d5db' }}
+                />
+              )}
+            </div>
+          ) : (
+            // Multi-input — one row per input
+            inputs.map((inp, idx) => (
+              <div key={idx} style={{
+                fontSize: 9, color: '#d1d5db', minHeight: 18,
+                display: 'flex', alignItems: 'center',
+                borderLeft: flipped ? 'none' : '2px solid #374151',
+                borderRight: flipped ? '2px solid #374151' : 'none',
+                paddingLeft: flipped ? 0 : 4,
+                paddingRight: flipped ? 4 : 0,
+                marginLeft: flipped ? 0 : -2,
+                marginRight: flipped ? -2 : 0,
+              }}>
+                <span style={{ lineHeight: 1.3, wordBreak: 'break-word' }}>{inp}</span>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Output side */}
@@ -143,8 +159,6 @@ function PinGroup({ nodeId, group, colors, readOnly, isLast, flipped }) {
           ))}
         </div>
       </div>
-
-      {/* Handles are rendered by the parent — we just return layout info */}
     </div>
   );
 }
@@ -188,29 +202,55 @@ export default function WorkPackageNode({ id, data, selected }) {
   let pinAreaY = headerH + statusBarH;
 
   groups.forEach((group, gi) => {
-    const outputCount = Math.max(1, group.outputs?.length || 0);
-    const groupContentH = outputCount * outputRowH;
+    const outputs = group.outputs || [];
+    const inputs = group.inputs || [group.inputLabel || 'Input'];
+    const rowCount = Math.max(1, inputs.length, outputs.length);
+    const groupContentH = rowCount * outputRowH;
     const groupTotalH = groupContentH + groupPadding;
 
-    // Input pin — centered vertically in this group
-    const inputCenterY = pinAreaY + groupPadding / 2 + groupContentH / 2;
-    handleElements.push(
-      <Handle
-        key={`in-${group.id}`}
-        type="target"
-        position={inputPos}
-        id={`input-${group.id}`}
-        style={{
-          top: inputCenterY,
-          [flipped ? 'right' : 'left']: -1,
-          background: accentColor,
-          width: PIN_SIZE,
-          height: PIN_SIZE,
-          borderRadius: '50%',
-          border: '2px solid #23272f',
-        }}
-      />
-    );
+    if (inputs.length <= 1) {
+      // Single input — one handle centered vertically
+      const inputCenterY = pinAreaY + groupPadding / 2 + groupContentH / 2;
+      handleElements.push(
+        <Handle
+          key={`in-${group.id}`}
+          type="target"
+          position={inputPos}
+          id={`input-${group.id}`}
+          style={{
+            top: inputCenterY,
+            [flipped ? 'right' : 'left']: -1,
+            background: accentColor,
+            width: PIN_SIZE,
+            height: PIN_SIZE,
+            borderRadius: '50%',
+            border: '2px solid #23272f',
+          }}
+        />
+      );
+    } else {
+      // Multi-input — one handle per input
+      inputs.forEach((inp, idx) => {
+        const inpY = pinAreaY + groupPadding / 2 + idx * outputRowH + outputRowH / 2;
+        handleElements.push(
+          <Handle
+            key={`in-${group.id}-${idx}`}
+            type="target"
+            position={inputPos}
+            id={`input-${group.id}-${idx}`}
+            style={{
+              top: inpY,
+              [flipped ? 'right' : 'left']: -1,
+              background: accentColor,
+              width: PIN_SIZE,
+              height: PIN_SIZE,
+              borderRadius: '50%',
+              border: '2px solid #23272f',
+            }}
+          />
+        );
+      });
+    }
 
     // Output pins
     if (group.outputs) {
