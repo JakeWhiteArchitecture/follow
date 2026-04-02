@@ -271,54 +271,52 @@ function NodeProperties() {
               <div style={{ marginTop: 8, display: 'flex', gap: 4 }}>
                 <button style={{ ...smallBtnStyle, flex: 1, fontSize: 9 }}
                   onClick={() => {
-                    // Merge all incoming pins into one group
+                    // Merge incoming: all inputs combine, single output retained
                     const allInputs = groups.flatMap((g) =>
                       Array.isArray(g.inputs) ? g.inputs : [g.inputLabel || 'Input']
                     );
-                    // Ask which label to keep for the output
-                    const allOutputLabels = groups.flatMap((g) => (g.outputs || []).map((o) => o.label));
-                    let keepLabel = allOutputLabels[0] || data.label;
-                    if (allOutputLabels.length > 1) {
+                    // Ask which INPUT label to keep as the group name
+                    let keepInput = allInputs[0];
+                    if (allInputs.length > 1) {
                       const choice = prompt(
-                        `Which output label to keep?\n${allOutputLabels.map((l, i) => `${i + 1}. ${l}`).join('\n')}\n\nEnter number:`
+                        `Which input label to keep as group name?\n${allInputs.map((l, i) => `${i + 1}. ${l}`).join('\n')}\n\nEnter number:`
                       );
                       const idx = parseInt(choice) - 1;
-                      if (idx >= 0 && idx < allOutputLabels.length) keepLabel = allOutputLabels[idx];
+                      if (idx >= 0 && idx < allInputs.length) keepInput = allInputs[idx];
                       else if (choice === null) return;
                     }
-                    // Merge into first group
                     const firstGroup = groups[0];
                     const mergedOutputId = firstGroup.outputs?.[0]?.id || `o_${Date.now()}`;
+                    const firstOutputLabel = groups[0]?.outputs?.[0]?.label || data.label;
                     updateNodeData(node.id, {
                       groups: [{
                         id: firstGroup.id,
                         inputs: allInputs,
-                        inputLabel: allInputs[0],
-                        outputs: [{ id: mergedOutputId, label: keepLabel }],
+                        inputLabel: keepInput,
+                        outputs: [{ id: mergedOutputId, label: firstOutputLabel }],
                       }],
                     });
                   }}>Merge incoming</button>
                 <button style={{ ...smallBtnStyle, flex: 1, fontSize: 9 }}
                   onClick={() => {
-                    // Merge all outgoing pins into one group
+                    // Merge outgoing: all outputs combine, single input retained
                     const allOutputs = groups.flatMap((g) => (g.outputs || []).map((o) => o.label));
-                    const allInputLabels = groups.map((g) =>
-                      Array.isArray(g.inputs) ? g.inputs[0] : (g.inputLabel || 'Input')
-                    );
-                    let keepLabel = allInputLabels[0] || 'Input';
-                    if (allInputLabels.length > 1) {
+                    // Ask which OUTPUT label to keep as the group name
+                    let keepOutput = allOutputs[0];
+                    if (allOutputs.length > 1) {
                       const choice = prompt(
-                        `Which input label to keep?\n${allInputLabels.map((l, i) => `${i + 1}. ${l}`).join('\n')}\n\nEnter number:`
+                        `Which output label to keep as group name?\n${allOutputs.map((l, i) => `${i + 1}. ${l}`).join('\n')}\n\nEnter number:`
                       );
                       const idx = parseInt(choice) - 1;
-                      if (idx >= 0 && idx < allInputLabels.length) keepLabel = allInputLabels[idx];
+                      if (idx >= 0 && idx < allOutputs.length) keepOutput = allOutputs[idx];
                       else if (choice === null) return;
                     }
                     const firstGroup = groups[0];
+                    const firstInputLabel = Array.isArray(groups[0]?.inputs) ? groups[0].inputs[0] : (groups[0]?.inputLabel || 'Input');
                     updateNodeData(node.id, {
                       groups: [{
                         id: firstGroup.id,
-                        inputLabel: keepLabel,
+                        inputLabel: firstInputLabel,
                         outputs: allOutputs.map((label, i) => ({
                           id: firstGroup.outputs?.[i]?.id || `o_${Date.now()}_${i}`,
                           label,
