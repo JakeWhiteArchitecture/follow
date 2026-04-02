@@ -159,7 +159,7 @@ function NodeProperties() {
       <select style={selectStyle} value={data.role || ''} onChange={(e) => update('role', e.target.value || null)} disabled={readOnly}>
         <option value="">Unassigned</option>
         {contacts.map((c) => (
-          <option key={c.id} value={c.id}>{c.name || c.discipline}{c.org ? ` (${c.org})` : ''}</option>
+          <option key={c.id} value={c.id}>{c.discipline || c.name || 'Unknown role'}</option>
         ))}
       </select>
       <label style={labelStyle}>Status</label>
@@ -234,6 +234,63 @@ function NodeProperties() {
         }}>Delete Node</button>
       )}
     </>
+  );
+}
+
+function UnassignedNodesList() {
+  const nodes = useProjectStore((s) => s.nodes);
+  const selectNode = useProjectStore((s) => s.selectNode);
+  const [expanded, setExpanded] = useState({});
+
+  const unassigned = nodes.filter((n) => !n.data.role);
+  const byType = {
+    checkpoint: unassigned.filter((n) => n.data.nodeType === 'checkpoint'),
+    decision: unassigned.filter((n) => n.data.nodeType === 'decision'),
+    work_package: unassigned.filter((n) => n.data.nodeType === 'work_package'),
+  };
+
+  const typeLabels = { checkpoint: 'Checkpoints', decision: 'Decisions', work_package: 'Work Sections' };
+  const typeColors = { checkpoint: '#7C3AED', decision: '#DB2777', work_package: '#EA580C' };
+
+  if (unassigned.length === 0) return (
+    <div style={{ fontSize: 10, color: '#4b5563', textAlign: 'center', padding: 8 }}>All nodes assigned</div>
+  );
+
+  return (
+    <div>
+      <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        Unassigned ({unassigned.length})
+      </div>
+      {Object.entries(byType).map(([type, items]) => {
+        if (items.length === 0) return null;
+        const isOpen = expanded[type];
+        return (
+          <div key={type} style={{ marginBottom: 4 }}>
+            <button onClick={() => setExpanded((e) => ({ ...e, [type]: !e[type] }))}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af',
+                fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, padding: '3px 0', width: '100%',
+              }}>
+              <span style={{ fontSize: 8, color: typeColors[type] }}>●</span>
+              <span>{typeLabels[type]}</span>
+              <span style={{ marginLeft: 'auto', fontSize: 10, color: '#ef4444', fontWeight: 600 }}>{items.length}</span>
+              <span style={{ fontSize: 8, color: '#4b5563' }}>{isOpen ? '▾' : '▸'}</span>
+            </button>
+            {isOpen && items.map((n) => (
+              <button key={n.id} onClick={() => selectNode(n.id)}
+                style={{
+                  background: '#1e1e2e', border: '1px solid #2a2a3e', borderRadius: 3,
+                  color: '#d1d5db', fontSize: 10, padding: '3px 8px', marginBottom: 2,
+                  cursor: 'pointer', width: '100%', textAlign: 'left',
+                  display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                {n.data.label}
+              </button>
+            ))}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -368,7 +425,15 @@ export default function PropertiesPanel({ addMode, setAddMode }) {
           )}
         </>
       ) : (
-        !readOnly && <ModuleImportSection />
+        <>
+          <UnassignedNodesList />
+          {!readOnly && (
+            <>
+              <div style={{ borderTop: '1px solid #2a2a3e', marginTop: 12, paddingTop: 12 }} />
+              <ModuleImportSection />
+            </>
+          )}
+        </>
       )}
 
       {/* Settings */}

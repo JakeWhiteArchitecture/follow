@@ -160,7 +160,7 @@ export default function WorkPackageNode({ id, data, selected }) {
   const readOnly = useProjectStore((s) => s.readOnly);
 
   const contact = contacts.find((c) => c.id === data.role);
-  const roleName = contact ? (contact.name || contact.discipline) : null;
+  const roleName = contact ? (contact.discipline || contact.name) : null;
   const isInfoRequest = data.nodeType === 'information_request';
   const groups = data.groups || [];
   const isChainGlow = highlighted && selectedNode !== id;

@@ -247,8 +247,11 @@ const useProjectStore = create((set, get) => ({
 
       const testEdges = [...edges, newEdge];
       if (detectCycle(updatedNodes, testEdges)) {
-        alert('Circular dependency detected. This connection is not allowed.');
-        return;
+        if (!confirm('This creates a circular dependency (loop). Is this intentional?\n\nClick OK to create a loop edge, or Cancel to abort.')) {
+          return;
+        }
+        // Mark as intentional loop
+        newEdge.data = { ...newEdge.data, loop: true };
       }
 
       const finalNodes = propagateStatuses(updatedNodes, testEdges);
@@ -464,11 +467,20 @@ const useProjectStore = create((set, get) => ({
     set({ nodes: finalNodes, edges: newEdges });
   },
 
-  updateNodeData: (nodeId, data) => {
+  updateNodeData: (nodeId, newData) => {
     set((state) => {
-      const nodes = state.nodes.map((n) =>
-        n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n
-      );
+      const nodes = state.nodes.map((n) => {
+        if (n.id !== nodeId) return n;
+        const merged = { ...n.data, ...newData };
+        // If nodeType changed, also update the React Flow type
+        let rfType = n.type;
+        if (newData.nodeType) {
+          rfType = newData.nodeType === 'decision' ? 'decision'
+            : newData.nodeType === 'checkpoint' ? 'checkpoint'
+            : 'workPackage';
+        }
+        return { ...n, type: rfType, data: merged };
+      });
       const updated = propagateStatuses(nodes, state.edges);
       return { nodes: updated };
     });
